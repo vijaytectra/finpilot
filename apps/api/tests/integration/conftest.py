@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator
 import httpx
 import pytest
 
-from app.services.rate_limit import login_limiter
+from app.services.rate_limit import account_limiter, login_limiter
 
 VIEWER = {"email": "viewer@finpilot.local", "password": "Viewer@12345"}
 ADMIN = {"email": "admin@finpilot.local", "password": "Admin@12345"}
@@ -14,6 +14,7 @@ async def client(seeded: dict[str, object]) -> AsyncIterator[httpx.AsyncClient]:
     from app.main import app
 
     login_limiter._events.clear()  # isolate rate-limit state between tests
+    account_limiter._events.clear()
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as c:
         yield c

@@ -75,7 +75,7 @@ switches at `md` instead.
 | Portfolio | Freshness banner, account cards row, positions table full width. |
 | Transactions | One-row filter toolbar above a full-width table; reversed/pending row styling kept. |
 | Goals | Card grid (3 across ≥ 1280 px, 2 across 768–1279 px) with funded-% bars; "Add goal" in the section header. |
-| Admin › Import | Two columns: upload + result summary · import history; rejected-rows table full width below. |
+| Admin › Import | Kept single-column (upload → result → full-width history). A two-column variant was built and reverted after the visual review: the history table's counts and status columns need the full width. |
 
 Loading skeletons, empty states and error states (with `request_id`) are kept and
 restyled to the same system.

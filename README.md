@@ -120,6 +120,7 @@ All configuration is environment variables; `.env` is git-ignored and `.env.exam
 | `IMPORT_MAX_BYTES` | `26214400` | CSV upload limit (413 above it) |
 | `API_PORT` / `WEB_PORT` / `PROXY_TLS_PORT` | `8000` / `3000` / `8443` | host ports |
 | `UVICORN_WORKERS` | `2` | API worker processes |
+| `FORWARDED_ALLOW_IPS` | `127.0.0.1` | proxies whose `X-Forwarded-For` is trusted; only set to an edge proxy that overwrites the header |
 | `SEED_ON_START` | `true` | run the idempotent seed at container start |
 | `DEMO_ADMIN_*` / `DEMO_VIEWER_*` | see above | demo users (non-production only) |
 | `API_INTERNAL_URL` (web) | `http://localhost:8000` (`http://api:8000` in compose) | where Next.js proxies `/api/*` |

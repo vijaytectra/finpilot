@@ -1,0 +1,42 @@
+sequenceDiagram
+    autonumber
+    actor A as Admin
+    participant W as /admin/import page
+    participant R as Router imports.py<br/>(AdminUser dependency)
+    participant S as ImportService
+    participant I as importers/transactions.py
+    participant DB as PostgreSQL
+
+    A->>W: choose transactions.csv, Upload
+    W->>R: POST /api/v1/admin/imports/transactions (multipart, cookie)
+    R->>R: role != ADMIN -> 403 FORBIDDEN
+    R->>S: upload_transactions(file, admin.id)
+    S->>S: .csv name + content-type allow-list (415),<br/>stream read with 25 MB cap (413), basename only
+    S->>I: import_transactions(bytes)
+    I->>I: parse_csv: UTF-8 (BOM ok), exact header set, csv.Error -> 422 FILE_*<br/>(whole file refused, nothing written)
+    I->>DB: TX1: INSERT import_batches (status PROCESSING, sha256, total_rows), then COMMIT
+    rect rgb(235, 243, 255)
+    Note over I,DB: TX2 - one database transaction
+    I->>DB: SELECT pg_advisory_xact_lock(hashtext('finpilot:import:TRANSACTIONS'))
+    Note right of DB: a concurrent upload waits here until TX2 ends
+    I->>DB: COPY rows -> staging_transactions (UNLOGGED, all TEXT: nothing can fail)
+    I->>DB: INSERT import_errors MALFORMED_ROW for rows whose field count differs from the header
+    I->>DB: CREATE TEMP TABLE parsed_tx: CASE + pg_input_is_valid() casts (bad value -> NULL)
+    loop one INSERT ... SELECT per rule (25 statements)
+        I->>DB: INSERT INTO import_errors (line_number, code, field, message, raw_data jsonb)<br/>MISSING_FIELD, INVALID_FORMAT/ENUM/DATE/NUMBER, FUTURE_TRADE_DATE,<br/>NEGATIVE_AMOUNT, INVALID_TRADE_SHAPE, AMOUNT_MISMATCH, UNKNOWN_ACCOUNT,<br/>UNKNOWN_INSTRUMENT, DUPLICATE_IN_FILE, CONFLICTS_WITH_EXISTING
+    end
+    I->>DB: count rows without errors whose id already exists (identical) -> duplicate_rows
+    I->>DB: INSERT INTO transactions SELECT rows without errors ON CONFLICT DO NOTHING -> inserted_rows
+    I->>DB: rejected_rows = count(DISTINCT line_number) in import_errors
+    I->>DB: DELETE staging rows of batch, UPDATE batch COMPLETED + counters<br/>(CHECK total = inserted + duplicate + rejected)
+    I->>DB: COMMIT (releases advisory lock, drops parsed_tx)
+    end
+    alt any exception inside TX2
+        DB-->>I: error -> ROLLBACK (no rows merged, no errors kept)
+        I->>DB: TX3: UPDATE import_batches SET status FAILED, error_message, then COMMIT
+        I-->>S: re-raise -> 500 INTERNAL_ERROR with request_id (stack trace only in logs)
+    end
+    S->>DB: read batch + first 500 import_errors
+    S-->>W: 201 ImportReport {counts, errors[], errors_truncated} + Location header
+    W-->>A: imported / duplicates / rejected, row errors table (line, code, message)
+    Note over A,DB: Re-uploading the same file: 0 inserted, 4550 duplicates, 4 rejected (idempotent).<br/>Same transaction_id with different values: CONFLICTS_WITH_EXISTING, never overwritten.

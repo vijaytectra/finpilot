@@ -1,0 +1,23 @@
+flowchart TB
+    dev["Developer<br/>feature branch"] -- "git push / PR" --> gh["GitHub"]
+
+    subgraph ci["ci.yml - on PR and push to main"]
+        direction LR
+        a1["uv sync --locked"] --> a2["ruff check + format --check"] --> a4["mypy --strict"]
+        a4 --> a5["alembic upgrade head<br/>(empty PostgreSQL 16 service)"] --> a6["alembic check<br/>(models = migrations)"]
+        a6 --> a7["alembic downgrade base<br/>&& upgrade head"] --> a8["pytest + coverage<br/>(real PostgreSQL)"]
+        w1["web job (Node 22): npm ci, lint,<br/>typecheck, Vitest, next build"]
+    end
+
+    subgraph dk["docker.yml - on PR and push to main"]
+        direction LR
+        d1["build api image<br/>(buildx, GHA cache)"] --> d2["build web image<br/>(when apps/web exists)"] --> d3["Trivy scan of api image<br/>CRITICAL/HIGH, report only<br/>(action pinned to commit SHA)"]
+        d3 --> d4["compose smoke test: db + api<br/>throw-away secrets, wait healthy,<br/>/health database=healthy, login 200"] --> d5["compose down -v"]
+    end
+
+    gh --> ci
+    gh --> dk
+    ci -- "green" --> merge["merge to main"]
+    dk -- "green" --> merge
+    merge -. "local: docker compose up --build<br/>(migrate -> seed -> serve)" .-> local["Local host"]
+    merge -. "production: push images to registry,<br/>migration job, rolling deploy" .-> prod["Production (future)"]

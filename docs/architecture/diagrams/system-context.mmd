@@ -1,0 +1,25 @@
+flowchart LR
+    viewer(["Wealth-service user<br/>role VIEWER"])
+    admin(["Operations administrator<br/>role ADMIN"])
+    dev(["Engineer / reviewer"])
+
+    subgraph host["FinPilot - single host, docker compose"]
+        proxy["Caddy TLS proxy<br/>:8443 (optional)"]
+        web["Web UI<br/>Next.js :3000"]
+        api["FinPilot API<br/>FastAPI /api/v1 :8000"]
+        db[("PostgreSQL 16")]
+    end
+
+    csv[/"Synthetic CSVs<br/>data/raw/*.csv"/]
+    gh["GitHub<br/>repo + Actions"]
+
+    viewer -- "search, portfolio,<br/>ledger, goals" --> web
+    admin -- "upload transactions CSV,<br/>review row errors" --> web
+    viewer -. "https" .-> proxy
+    proxy -.-> web
+    web -- "same-origin /api/v1/*<br/>rewrite, session cookie" --> api
+    api -- "asyncpg pool,<br/>parameterised SQL" --> db
+    csv -- "seed at start-up /<br/>admin upload" --> api
+    dev -- "push / PR" --> gh
+    gh -. "CI: lint, types, migrations,<br/>tests, images, smoke test" .-> host
+    dev -- "Swagger /docs,<br/>psql 127.0.0.1:5433" --> api

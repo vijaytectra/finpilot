@@ -1,8 +1,8 @@
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -15,6 +15,11 @@ def _find_repo_root() -> Path:
 
 
 REPO_ROOT = _find_repo_root()
+
+_KNOWN_DEV_SECRETS = {
+    "insecure-local-development-secret-change-me",
+    "local-dev-only-jwt-secret-do-not-use-in-any-shared-environment",
+}
 
 
 class Settings(BaseSettings):
@@ -68,6 +73,18 @@ class Settings(BaseSettings):
         if len(value.get_secret_value()) < 32:
             raise ValueError("JWT_SECRET must be at least 32 characters")
         return value
+
+    @model_validator(mode="after")
+    def _production_guards(self) -> Self:
+        """Local defaults keep `cp .env.example .env && docker compose up` frictionless;
+        production must never run with a published/default secret or demo behaviour."""
+        if self.environment == "production":
+            secret = self.jwt_secret.get_secret_value()
+            if secret in _KNOWN_DEV_SECRETS or "local-dev" in secret:
+                raise ValueError("JWT_SECRET is a published development default")
+            if not self.cookie_secure:
+                raise ValueError("COOKIE_SECURE must be true in production (HTTPS only)")
+        return self
 
 
 @lru_cache

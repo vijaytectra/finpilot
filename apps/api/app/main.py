@@ -8,7 +8,7 @@ from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.database import engine
 from app.core.errors import register_exception_handlers
-from app.core.logging import configure_logging, get_logger
+from app.core.logging import configure_logging, get_logger, use_json_logs
 from app.core.middleware import RequestContextMiddleware
 
 
@@ -23,7 +23,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    configure_logging(settings.log_level, json=settings.environment != "local")
+    configure_logging(settings.log_level, json=use_json_logs(settings.environment))
 
     app = FastAPI(
         title="FinPilot API",

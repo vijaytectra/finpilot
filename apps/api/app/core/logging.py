@@ -5,6 +5,12 @@ from typing import Any
 import structlog
 
 
+def use_json_logs(environment: str) -> bool:
+    """Human-friendly console output only for local runs in a real terminal; JSON everywhere
+    else (containers, CI, production) so log collectors get one parseable object per line."""
+    return environment != "local" or not sys.stdout.isatty()
+
+
 def configure_logging(level: str = "INFO", *, json: bool = True) -> None:
     """Structured logs to stdout. Request-scoped fields (request_id) come from contextvars."""
     shared: list[Any] = [

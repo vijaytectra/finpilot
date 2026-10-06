@@ -1,0 +1,30 @@
+# Optional local TLS reverse proxy (docker compose --profile proxy up).
+# `tls internal` issues a certificate from Caddy's own local CA, so the browser will warn
+# unless that CA is trusted. In production TLS terminates at the load balancer / ingress
+# with a publicly trusted certificate instead.
+{
+	admin off
+}
+
+https://localhost:8443 {
+	tls internal
+
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		-Server
+	}
+
+	# API and its docs go straight to FastAPI; everything else to the Next.js app.
+	@api path /api/* /docs /docs/* /redoc /openapi.json
+	handle @api {
+		reverse_proxy api:8000
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+}

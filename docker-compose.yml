@@ -1,5 +1,12 @@
 name: finpilot
 
+# One command: `docker compose up --build`
+#   db  -> PostgreSQL 16 (named volume)
+#   api -> FastAPI; entrypoint runs `alembic upgrade head`, the idempotent seed, then uvicorn
+#   web -> Next.js (standalone); proxies /api/* to the api service (same-origin cookies)
+# Optional: `docker compose --profile proxy up --build` adds Caddy with local TLS on :8443.
+# All ports bind to 127.0.0.1 only. All secrets come from .env (git-ignored).
+
 services:
   db:
     image: postgres:16-alpine
@@ -18,5 +25,59 @@ services:
       timeout: 3s
       retries: 20
 
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: finpilot-api:local
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: true
+    environment:
+      # Overrides the host-oriented DATABASE_URL from .env with the in-network host "db".
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-finpilot}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-finpilot}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      SEED_ON_START: ${SEED_ON_START:-true}
+      UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
+      # Only the web/proxy containers can reach the api on this private network; trust their
+      # X-Forwarded-For so per-client login rate limiting sees the real client address.
+      FORWARDED_ALLOW_IPS: "*"
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: apps/web
+      args:
+        # Next.js resolves rewrites at build time in standalone mode; set it for both phases.
+        API_INTERNAL_URL: http://api:8000
+    image: finpilot-web:local
+    restart: unless-stopped
+    environment:
+      API_INTERNAL_URL: http://api:8000
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  proxy:
+    profiles: ["proxy"]
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PROXY_TLS_PORT:-8443}:8443"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      web:
+        condition: service_healthy
+
 volumes:
   pgdata:
+  caddy_data:

@@ -1,0 +1,78 @@
+name: Docker
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  images:
+    name: Build images, scan, compose smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          tags: finpilot-api:ci
+          load: true
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Build web image
+        if: hashFiles('apps/web/package.json') != ''
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/web
+          build-args: API_INTERNAL_URL=http://api:8000
+          tags: finpilot-web:ci
+          load: true
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+      - name: Vulnerability scan (report only)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: finpilot-api:ci
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "0"
+
+      - name: Compose smoke test (db + api)
+        run: |
+          # Throwaway secrets generated per run; never committed.
+          pw=$(openssl rand -hex 16)
+          sed -e "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=${pw}/" \
+              -e "s/^JWT_SECRET=.*/JWT_SECRET=$(openssl rand -hex 32)/" \
+              -e "s#finpilot-local-dev-password#${pw}#" \
+              .env.example > .env
+          docker tag finpilot-api:ci finpilot-api:local
+          docker compose up -d --no-build db api
+          for i in $(seq 1 40); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' finpilot-api-1 || true)
+            [ "$status" = "healthy" ] && break
+            sleep 3
+          done
+          docker compose logs api | tail -n 30
+          test "$status" = "healthy"
+          curl -fsS http://127.0.0.1:8000/api/v1/health | tee /dev/stderr | grep -q '"database":"healthy"'
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8000/api/v1/auth/login \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"viewer@finpilot.local","password":"Viewer@12345"}')
+          test "$code" = "200"
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v || true

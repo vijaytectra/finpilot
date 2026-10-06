@@ -1,0 +1,15 @@
+# Context is the repo root; only ship what the API image needs.
+*
+!apps/api/pyproject.toml
+!apps/api/uv.lock
+!apps/api/alembic.ini
+!apps/api/alembic/
+!apps/api/app/
+!apps/api/docker-entrypoint.sh
+!data/raw/
+
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache

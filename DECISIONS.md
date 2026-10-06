@@ -37,8 +37,7 @@ design; this file is the short list a reviewer can check claims against.
 
 | # | Limitation | Impact | Fix when needed |
 |---|---|---|---|
-| L1 | Login rate limiter is in-process memory | Limits are per API process and reset on restart; with N replicas an attacker gets N x 5 attempts/min | Redis/gateway limiter behind the same interface (`SlidingWindowLimiter`) |
-| L2 | Behind the Next.js proxy the API sees the web container as the client IP unless uvicorn runs with `--proxy-headers` and a trusted `forwarded-allow-ips` | Rate-limit key degrades to "per e-mail"; logged client IPs are the proxy's | Configure trusted proxy headers; propagate the real IP |
+| L1 | Login rate limiter is in-process memory | Counters are per uvicorn worker (compose runs 2) and per replica, and reset on restart: the effective limit is 5 x workers x replicas attempts/min per client IP + e-mail | Redis/gateway limiter behind the same interface (`SlidingWindowLimiter`) |
 | L3 | Offset pagination | Deep pages cost O(offset) (measured 293 ms at page 2,000 for a 50k-row customer on a 3M-row table) | Keyset cursor `(trade_date, transaction_id)`, measured 0.6 ms |
 | L4 | No optimistic locking on goals | `SELECT ... FOR UPDATE` serialises concurrent writes, but a user can save over a change made after they opened the form (last write wins) | `version` column or `If-Match` on `updated_at` -> 409 |
 | L5 | Customer list values every customer's portfolio before paging (`v_customer_aum` join) | Negligible on supplied data (3 ms); ~0.5-1.1 s at 100k customers | Page first, value the page; materialized AUM for AUM sort |
@@ -47,11 +46,21 @@ design; this file is the short list a reviewer can check claims against.
 | L8 | Each money figure is rounded half-up to 2 dp independently at serialisation | Sum of displayed parts may differ from the displayed total by up to 0.01 per part (documented in OpenAPI) | Largest-remainder allocation in the UI if exact visual footing is required |
 | L9 | Money is emitted as JSON numbers | Consumers parsing into binary floats see representation error beyond 2 dp (values are already rounded, so display is exact) | Emit decimal strings in a v2 contract if downstream systems compute with them |
 | L10 | Import runs synchronously in the HTTP request | Large files hold a request and a connection for the whole merge (bounded by the 25 MB cap and the 15 s statement timeout per statement) | Job table + worker, `202 Accepted`, progress polling |
-| L11 | In the transactions upload, a row with **more** fields than the header is not flagged `MALFORMED_ROW` (surplus values are dropped); missing fields are caught as `MISSING_FIELD`. The reference loader does flag both | A shifted row with extra columns could load if the first nine values are valid | Add a `MALFORMED_ROW` rule from the parser flag (one line) |
-| L12 | `JWT_SECRET` has a development default that passes the 32-character check | A production deployment that forgets to set it would sign tokens with a public value | Refuse the default when `ENVIRONMENT=production` |
 | L13 | CSRF protection relies on `SameSite=Lax`; no `Origin` check or CSRF token | A malicious page on the same *site* (e.g. another app on `localhost`) could submit the multipart upload with the admin's cookie | `Origin`/`Sec-Fetch-Site` check on unsafe methods |
 | L14 | Failed-login log lines contain the attempted e-mail and client IP | PII in logs (synthetic here) | Hash or tokenise in production, restricted log access |
 | L15 | No metrics endpoint or tracing | Diagnosis relies on structured logs + `request_id` | RED metrics, OpenTelemetry |
+
+### Resolved during the architecture review
+
+These were open when the review started and are now fixed on `main`; the ids are kept so earlier
+references stay meaningful.
+
+| # | Was | Fix | Evidence |
+|---|---|---|---|
+| R1 (was L12) | The development `JWT_SECRET` default passed the 32-character check, so a production deployment that forgot to set it would sign tokens with a public value | `Settings._production_guards` (`app/core/config.py`): with `ENVIRONMENT=production` start-up fails on a known/`local-dev` secret or `COOKIE_SECURE=false`. `.env.example` deliberately ships a labelled local-only secret so `cp .env.example .env && docker compose up` works | `tests/unit/test_config.py` |
+| R2 (was L2) | Behind the Next.js proxy the API saw the web container as the client, so the login limit degraded to "per e-mail" and logged IPs were the proxy's | The entrypoint runs uvicorn with `--proxy-headers --forwarded-allow-ips "${FORWARDED_ALLOW_IPS}"`; compose sets `FORWARDED_ALLOW_IPS: "*"` for the api, which is reachable only on the private compose network and the 127.0.0.1 host binding, so `request.client.host` is the real client from `X-Forwarded-For` | `apps/api/docker-entrypoint.sh`, `docker-compose.yml` |
+| R3 (was L11) | A transactions row with more fields than the header had the surplus values dropped and could load | Rows whose field count differs from the header are rejected as `MALFORMED_ROW` inside the import transaction and excluded from the merge | regression test in `tests/integration/test_import_pipeline.py` (PR #7) |
+| R4 | Console (non-JSON) logs whenever `ENVIRONMENT=local`, including inside containers | `use_json_logs()` (`app/core/logging.py`): JSON whenever the environment is not `local` or stdout is not a TTY, so every container emits one JSON object per line | `app/main.py` |
 
 ## 4. Decision records
 
@@ -140,7 +149,7 @@ Format: context -> decision -> consequences. Status of all: **Accepted**.
   for direct development use.
 * **Consequences:** + First-party cookie, no preflights, API not exposed to the browser network;
   one public origin to put TLS/WAF in front of. - The web tier is in the request path; client IP
-  must be forwarded explicitly (L2).
+  is forwarded via `X-Forwarded-For` and trusted by uvicorn `--proxy-headers` (R2).
 
 ### ADR-09 Plain views, not materialized views
 * **Context:** Portfolio, AUM, flows and exception logic should be defined once and reused.

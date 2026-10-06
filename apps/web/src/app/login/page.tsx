@@ -21,9 +21,9 @@ export default function LoginPage() {
           <span className="text-lg font-semibold tracking-tight">FinPilot</span>
         </div>
         <div className="max-w-md space-y-5">
-          <h2 className="text-3xl leading-tight font-semibold tracking-tight text-white">
+          <p className="text-3xl leading-tight font-semibold tracking-tight text-white">
             Investment portfolio &amp; goal monitoring
-          </h2>
+          </p>
           <p className="text-sm leading-relaxed">
             One consolidated view of each customer&apos;s accounts, holdings, risk profile, goals and transactions for
             the wealth-service team.

@@ -31,7 +31,7 @@ export function SidebarNav({
         const items = section.items.filter((item) => !item.adminOnly || isAdmin);
         if (items.length === 0) return null;
         return (
-          <div key={section.label ?? index} className="space-y-1">
+          <div key={section.label ?? index} className={cn("space-y-1", rail && index > 0 && "border-t border-sidebar-border pt-4 xl:border-0 xl:pt-0")}>
             {section.label ? (
               <p
                 className={cn(

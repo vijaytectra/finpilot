@@ -247,11 +247,10 @@ Compose overrides `DATABASE_URL` to the in-network host `db`; Alembic reads the 
 **Environments:** `local`, `test` (pytest builds `finpilot_test`), `ci`, `production`
 (no demo users, start-up refuses development secrets and `COOKIE_SECURE=false`).
 
-**Production mapping:** managed PostgreSQL 16 (Multi-AZ, automated backups + PITR, private
-subnet, TLS); the same API/web images on a container platform behind a managed load balancer
-with real certificates and SSO in front; migrations as a one-off release job (`SEED_ON_START=false`);
-secrets from a secrets manager; separate DB roles for DDL (migrations) and DML (runtime); logs
-shipped to a central store.
+**Production mapping:** managed PostgreSQL 16 (Multi-AZ, PITR, private subnet, TLS); the same
+images on a container platform behind a load balancer that terminates TLS and overwrites
+`X-Forwarded-For`; migrations as a release job (`SEED_ON_START=false`); secrets manager; separate
+DDL/DML database roles; central log store.
 
 ## 8. Security
 
@@ -260,19 +259,17 @@ shipped to a central store.
 | Authentication | Argon2id hashes (rehashed on login when parameters change). Identical 401 for unknown user, wrong password and inactive user; a dummy hash is verified for unknown e-mails to equalise timing. Two login budgets, both charged on every attempt: 5 / 60 s per (client IP, e-mail) and 10 / 60 s per e-mail. The second cannot be reset by changing addresses; a flood can lock one account's sign-in for up to a minute. Held in memory per uvicorn worker |
 | Session | HS256 JWT with pinned algorithm and required `iss/exp/iat/sub/role`, 60 min, only in an `HttpOnly; SameSite=Lax` cookie (`Secure` over HTTPS), never in a body or `localStorage`. The user row is re-read per request, so deactivation and role changes apply immediately |
 | Authorisation | Role dependencies on routes (`AdminUser`); VIEWER reads and maintains goals, only ADMIN imports (tested both ways) |
-| Input validation | Pydantic contracts on every input, bounded lengths and page sizes, decimal precision, `extra="forbid"` |
 | SQL injection | Every value is a bind parameter. Dynamic SQL is limited to `ORDER BY` fragments chosen from a fixed dict by an enum-validated key, and constant `WHERE` fragments. Search terms are lower-cased and `%`, `_`, `\` escaped so wildcards match literally (tested). Import data enters only via `COPY` and parameters |
 | CORS / CSRF | Same-origin via the rewrite; the API's CORS allow-list (`CORS_ORIGINS`) is only for direct development calls. CSRF relies on `SameSite=Lax`; JSON bodies also force a preflight cross-origin, but the multipart upload does not, and a same-*site* origin is not covered (open: add an `Origin` check) |
-| Uploads | ADMIN only; `.csv` + content-type allow-list; streamed 25 MB cap (413); strict UTF-8; exact header; field-count check; 64 KiB field cap; basename only; SHA-256 recorded |
+| Input and uploads | Pydantic contracts on every input (bounded lengths and page sizes, decimal precision, `extra="forbid"`). Uploads: ADMIN only; `.csv` + content-type allow-list; streamed 25 MB cap (413); strict UTF-8; exact header; field-count check; 64 KiB field cap; basename only; SHA-256 recorded |
 | Secrets | None in Git; `SecretStr`; `JWT_SECRET` >= 32 chars; with `ENVIRONMENT=production` a `_production_guards` validator refuses published/`local-dev` secrets and `COOKIE_SECURE=false` (unit-tested); CI generates throw-away secrets |
-| Logs and PII | Access log has method, path, status, duration, `request_id`; no query strings, bodies, cookies or passwords. Failed-login events log the attempted e-mail and client IP (PII; open: hash or restrict in production). Data is synthetic |
+| Logs and PII | Access log: method, path, status, duration, `request_id`; never query strings, bodies, cookies or passwords. Failed-login events log e-mail and client IP (PII; open: hash in production) |
 | Network, images, client IP | Ports bound to 127.0.0.1; non-root containers; Caddy adds HSTS/nosniff/frame-deny; Trivy in CI. The Next.js rewrite passes a client-supplied `X-Forwarded-For` through verbatim, so the api trusts forwarded headers only from `FORWARDED_ALLOW_IPS` (default 127.0.0.1). Behind the web proxy the API therefore sees the web container as the client, and the (IP, e-mail) budget acts per account. Real client IPs need an edge proxy that overwrites the header (production load balancer) |
 
 ## 9. Reliability and operations
 
-* **Health:** `/api/v1/health` runs `SELECT 1` through the pool (503 if the DB is down). It drives
-  the image `HEALTHCHECK` and compose start ordering; production would split liveness from
-  readiness.
+* **Health:** `/api/v1/health` runs `SELECT 1` (503 if the DB is down); it drives the image
+  `HEALTHCHECK` and compose start order. Production would split liveness from readiness.
 * **Logging:** structlog JSON whenever not run locally in a terminal (all containers, CI): one
   `request_completed` line per request (`request_id`, path, status, `duration_ms`) plus domain
   events (`login_failed`, `goal_updated`, `import_completed`, `import_failed` with stack trace).
@@ -287,17 +284,19 @@ shipped to a central store.
   revision rolls back and `alembic_version` stays at the last good revision; the entrypoint
   (`set -eu`) exits before uvicorn, so a half-migrated schema is never served. Rollback is
   `alembic downgrade -1`, proven by the CI round trip; production prefers roll-forward or restore.
-* **Backups:** locally the `pgdata` volume plus `pg_dump -Fc`; production uses managed automated
-  backups with WAL-based PITR and periodic restore drills.
+* **Backups:** locally the `pgdata` volume plus `pg_dump -Fc`; in production managed backups with
+  WAL-based PITR and periodic restore drills.
 
 ## 10. Trade-offs and roadmap
 
-**Trade-offs taken** (full ADRs in `DECISIONS.md`): natural keys give readable data and idempotency by PK but make re-keying costly; `VARCHAR + CHECK` makes vocabulary changes transactional but duplicates lists in Python enums; plain views are always fresh but recompute whole-table aggregates; offset pagination is simple but linear at depth; the cookie JWT keeps tokens out of JavaScript but costs a user lookup per request and needs CSRF care; the synchronous import holds a request for the whole file.
+**Trade-offs** (ADRs in `DECISIONS.md`): natural keys (readable, idempotent; costly re-keying);
+`VARCHAR + CHECK` (transactional vocabulary changes; lists duplicated in enums); plain views
+(fresh; recomputed per request); offset paging (simple; linear at depth); cookie JWT (no token in
+JS; per-request user lookup, CSRF care); synchronous import (atomic; holds the request).
 
-**Scale limits (measured).** Every endpoint takes < 5 ms of DB time on the supplied data. At
-100k customers / 3M transactions: ledger page 1.3 ms; customer list ~0.5–1.1 s (AUM computed for
-all customers before paging); a 50k-transaction customer 129 ms (page 1) to 293 ms (page 2,000);
-monthly flows 1.3 s. Both login budgets are in-process, so each worker and replica counts separately.
+**Scale limits (measured, `query-plans.md`):** < 5 ms per endpoint on the supplied data; at 3M
+transactions the customer list (0.5–1.1 s), deep ledger pages (293 ms) and monthly flows (1.3 s)
+are the bottlenecks. Login budgets are in-process, per worker and replica.
 
 **Next steps:** (1) page-first customer list (530 -> 0.6 ms) + materialized AUM; (2) keyset and
 per-account `LATERAL` ledger paging (293 -> 0.6 ms); (3) `If-Match` optimistic concurrency on goals;

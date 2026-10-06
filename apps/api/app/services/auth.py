@@ -13,15 +13,29 @@ log = get_logger("app.auth")
 
 class AuthService:
     def __init__(
-        self, users: UserRepository, settings: Settings, limiter: SlidingWindowLimiter
+        self,
+        users: UserRepository,
+        settings: Settings,
+        limiter: SlidingWindowLimiter,
+        account_limiter: SlidingWindowLimiter,
     ) -> None:
         self._users = users
         self._settings = settings
         self._limiter = limiter
+        self._account_limiter = account_limiter
 
     async def login(self, email: str, password: str, client_ip: str) -> tuple[User, str, datetime]:
         key = f"{client_ip}|{email}"
-        retry_after = self._limiter.hit(key)
+        # Both budgets are charged on every attempt; the per-account one cannot be evaded by
+        # spoofing X-Forwarded-For.
+        retry_after = max(
+            (
+                r
+                for r in (self._limiter.hit(key), self._account_limiter.hit(email))
+                if r is not None
+            ),
+            default=None,
+        )
         if retry_after is not None:
             log.warning("login_rate_limited", email=email, client_ip=client_ip)
             raise AppError(
@@ -39,6 +53,7 @@ class AuthService:
             raise UnauthorizedError("Invalid email or password", code="INVALID_CREDENTIALS")
 
         self._limiter.reset(key)
+        self._account_limiter.reset(email)
         new_hash = hash_password(password) if needs_rehash(user.password_hash) else None
         await self._users.record_login(user.id, new_hash)
         token, expires_at = issue_token(self._settings, user_id=user.id, role=user.role)

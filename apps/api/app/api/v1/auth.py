@@ -5,7 +5,7 @@ from app.repositories.users import UserRepository
 from app.schemas.auth import LoginRequest, SessionOut, UserOut
 from app.schemas.common import error_responses
 from app.services.auth import AuthService
-from app.services.rate_limit import login_limiter
+from app.services.rate_limit import account_limiter, login_limiter
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -29,7 +29,7 @@ async def login(
     settings: SettingsDep,
 ) -> SessionOut:
     client_ip = request.client.host if request.client else "unknown"
-    service = AuthService(UserRepository(session), settings, login_limiter)
+    service = AuthService(UserRepository(session), settings, login_limiter, account_limiter)
     user, token, expires_at = await service.login(
         payload.email, payload.password.get_secret_value(), client_ip
     )

@@ -70,7 +70,7 @@ export function DatePicker({
           <Calendar
             mode="single"
             selected={selected}
-            defaultMonth={selected ?? maxDate ?? minDate}
+            defaultMonth={selected ?? clampToday(minDate, maxDate)}
             startMonth={minDate}
             endMonth={maxDate}
             captionLayout="dropdown"
@@ -97,4 +97,12 @@ export function DatePicker({
       ) : null}
     </div>
   );
+}
+
+/** Open the calendar on today's month, pulled inside [min, max] when today falls outside. */
+function clampToday(min?: Date, max?: Date): Date {
+  const today = new Date();
+  if (min && today < min) return min;
+  if (max && today > max) return max;
+  return today;
 }

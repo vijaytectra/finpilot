@@ -13,6 +13,7 @@ import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { isApiError } from "@/lib/api/client";
+import { safeNextPath } from "@/lib/safe-redirect";
 
 import { useLogin } from "../hooks";
 
@@ -23,11 +24,6 @@ const loginSchema = z.object({
 
 type LoginValues = z.infer<typeof loginSchema>;
 
-/** Only allow same-site relative redirects (no `//evil.com` or absolute URLs). */
-export function safeNextPath(next: string | null): string {
-  if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/login")) return "/";
-  return next;
-}
 
 function describeLoginError(error: unknown): string {
   if (!isApiError(error)) return "Something went wrong. Please try again.";

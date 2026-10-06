@@ -124,6 +124,27 @@ async def test_same_id_with_different_content_is_rejected_not_overwritten() -> N
     assert str(qty) == "2.000000"
 
 
+async def test_rows_with_wrong_field_count_are_rejected_not_truncated() -> None:
+    # Regression: an extra trailing field used to be dropped silently and the row imported.
+    content = HEADER + b"\n".join(
+        [
+            b"T9400001,A00002,I0001,BUY,2026-09-01,2,100,200,SETTLED",
+            b"T9400002,A00002,I0001,BUY,2026-09-01,2,100,200,SETTLED,EXTRA",
+            b"T9400003,A00002,I0001,BUY,2026-09-01,2,100,200",
+        ]
+    )
+    outcome = await import_transactions(engine, content, filename="shape.csv", as_of=AS_OF)
+
+    assert (outcome.inserted_rows, outcome.rejected_rows) == (1, 2)
+    assert "MALFORMED_ROW" in _codes(outcome)[3]
+    assert "MALFORMED_ROW" in _codes(outcome)[4]
+    async with engine.connect() as conn:
+        loaded = await conn.scalar(
+            text("SELECT count(*) FROM transactions WHERE transaction_id IN ('T9400002')")
+        )
+    assert loaded == 0
+
+
 async def test_batch_counters_reconcile_and_are_persisted() -> None:
     async with engine.connect() as conn:
         bad = await conn.scalar(

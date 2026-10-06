@@ -2,7 +2,7 @@ import { Landmark, PiggyBank, TrendingUp, Wallet } from "lucide-react";
 
 import { Pnl } from "@/components/pnl";
 import { StatCard, StatCardSkeleton } from "@/components/stat-card";
-import { formatInteger, formatMoney, formatMoneyCompact, pluralize } from "@/lib/format";
+import { formatInteger, formatMoney, formatMoneyCompact, formatSignedMoney, pluralize } from "@/lib/format";
 
 import type { Portfolio } from "../types";
 
@@ -28,8 +28,9 @@ export function PortfolioSummary({ portfolio }: { portfolio: Portfolio }) {
       <StatCard
         label="Unrealised P/L"
         icon={TrendingUp}
-        value={<Pnl amount={totals.unrealized_pnl} iconClassName="size-5" />}
-        hint={<Pnl percent={totals.unrealized_pnl_pct} percentOnly className="text-xs" iconClassName="size-3" />}
+        value={<Pnl amount={totals.unrealized_pnl} compact iconClassName="size-5" />}
+        title={formatSignedMoney(totals.unrealized_pnl)}
+        hint={<Pnl amount={totals.unrealized_pnl} percent={totals.unrealized_pnl_pct} className="text-xs" iconClassName="size-3" />}
       />
       <StatCard
         label="Accounts"

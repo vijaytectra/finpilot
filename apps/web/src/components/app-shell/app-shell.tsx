@@ -19,7 +19,7 @@ function Brand({ tone = "light" }: { tone?: "light" | "sidebar" }) {
       href="/"
       className={cn(
         "flex items-center gap-2 rounded-md outline-none focus-visible:ring-3",
-        tone === "sidebar" ? "text-white focus-visible:ring-sidebar-ring/60" : "focus-visible:ring-ring/50",
+        tone === "sidebar" ? "text-white focus-visible:ring-sidebar-ring" : "focus-visible:ring-ring/50",
       )}
     >
       <Logo className="size-7 shrink-0" />

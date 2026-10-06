@@ -57,7 +57,7 @@ export function SidebarNav({
                         "relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors outline-none focus-visible:ring-3",
                         rail
                           ? [
-                              "justify-center focus-visible:ring-sidebar-ring/60 xl:justify-start",
+                              "justify-center focus-visible:ring-sidebar-ring xl:justify-start",
                               active
                                 ? "bg-sidebar-primary text-sidebar-primary-foreground before:absolute before:inset-y-1.5 before:-left-3 before:w-1 before:rounded-r before:bg-sidebar-ring"
                                 : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",

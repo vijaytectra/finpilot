@@ -57,10 +57,9 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
           "flex items-center gap-2 rounded-md text-left outline-none focus-visible:ring-3",
           compact
             ? "rounded-full focus-visible:ring-ring/50"
-            : "w-full justify-center p-2 text-sidebar-foreground hover:bg-sidebar-accent focus-visible:ring-sidebar-ring/60 xl:justify-start",
+            : "w-full justify-center p-2 text-sidebar-foreground hover:bg-sidebar-accent focus-visible:ring-sidebar-ring xl:justify-start",
         )}
         aria-label={`Account menu for ${user.full_name}`}
-        title={compact ? undefined : user.full_name}
       >
         <Avatar className="size-8">
           <AvatarFallback className="bg-accent text-xs font-semibold text-accent-foreground">

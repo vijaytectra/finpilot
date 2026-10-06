@@ -193,7 +193,7 @@ def upgrade() -> None:
     sa.Column('field', sa.String(length=60), nullable=True),
     sa.Column('message', sa.Text(), nullable=False),
     sa.Column('raw_data', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.CheckConstraint("severity IN ('REJECTED', 'SKIPPED')", name=op.f('ck_import_errors_severity_valid')),
+    sa.CheckConstraint("severity IN ('REJECTED', 'WARNING')", name=op.f('ck_import_errors_severity_valid')),
     sa.ForeignKeyConstraint(['batch_id'], ['import_batches.id'], name=op.f('fk_import_errors_batch_id_import_batches'), ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_import_errors'))
     )

@@ -63,7 +63,7 @@ class ImportBatch(Base):
 class ImportRowError(Base):
     __tablename__ = "import_errors"
     __table_args__ = (
-        CheckConstraint("severity IN ('REJECTED', 'SKIPPED')", name="severity_valid"),
+        CheckConstraint("severity IN ('REJECTED', 'WARNING')", name="severity_valid"),
         Index(None, "batch_id", "line_number"),
     )
 

@@ -7,6 +7,7 @@ from datetime import date, datetime
 
 from sqlalchemy import (
     CheckConstraint,
+    Computed,
     Date,
     DateTime,
     ForeignKey,
@@ -15,6 +16,7 @@ from sqlalchemy import (
     Sequence,
     SmallInteger,
     String,
+    Text,
     func,
     text,
 )
@@ -62,6 +64,12 @@ class Customer(TimestampMixin, Base):
         CheckConstraint(in_check("segment", values(Segment)), name="segment_valid"),
         CheckConstraint("onboarded_at > date_of_birth", name="onboarded_after_birth"),
         CheckConstraint("email = lower(email)", name="email_lowercase"),
+        Index(
+            "ix_customers_search_trgm",
+            "search_text",
+            postgresql_using="gin",
+            postgresql_ops={"search_text": "gin_trgm_ops"},
+        ),
     )
 
     customer_id: Mapped[str] = mapped_column(String(10), primary_key=True)
@@ -74,6 +82,15 @@ class Customer(TimestampMixin, Base):
     onboarded_at: Mapped[date] = mapped_column(Date)
     kyc_status: Mapped[str] = mapped_column(String(10))
     segment: Mapped[str] = mapped_column(String(10))
+    # Single lower-cased haystack for "search by id, name, email or city", backed by a
+    # pg_trgm GIN index so `ILIKE '%term%'` does not degrade into a sequential scan.
+    search_text: Mapped[str] = mapped_column(
+        Text,
+        Computed(
+            "lower(customer_id || ' ' || full_name || ' ' || email || ' ' || city)",
+            persisted=True,
+        ),
+    )
 
     accounts: Mapped[list["Account"]] = relationship(back_populates="customer")
 

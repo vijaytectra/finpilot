@@ -20,6 +20,7 @@ sequenceDiagram
     I->>DB: SELECT pg_advisory_xact_lock(hashtext('finpilot:import:TRANSACTIONS'))
     Note right of DB: a concurrent upload waits here until TX2 ends
     I->>DB: COPY rows -> staging_transactions (UNLOGGED, all TEXT: nothing can fail)
+    I->>DB: INSERT import_errors MALFORMED_ROW for rows whose field count differs from the header
     I->>DB: CREATE TEMP TABLE parsed_tx: CASE + pg_input_is_valid() casts (bad value -> NULL)
     loop one INSERT ... SELECT per rule (25 statements)
         I->>DB: INSERT INTO import_errors (line_number, code, field, message, raw_data jsonb)<br/>MISSING_FIELD, INVALID_FORMAT/ENUM/DATE/NUMBER, FUTURE_TRADE_DATE,<br/>NEGATIVE_AMOUNT, INVALID_TRADE_SHAPE, AMOUNT_MISMATCH, UNKNOWN_ACCOUNT,<br/>UNKNOWN_INSTRUMENT, DUPLICATE_IN_FILE, CONFLICTS_WITH_EXISTING

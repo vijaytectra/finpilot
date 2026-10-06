@@ -3,7 +3,7 @@ sequenceDiagram
     actor U as User (browser)
     participant W as Next.js (web :3000)
     participant A as API /api/v1/auth
-    participant L as Login rate limiter<br/>(in-process, 5/min per IP+email)
+    participant L as Login rate limiter<br/>(in-process per worker,<br/>5/min per client IP + email)
     participant DB as PostgreSQL (users)
 
     U->>W: GET /customers (no cookie)

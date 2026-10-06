@@ -3,20 +3,23 @@ flowchart LR
     admin(["Operations administrator<br/>role ADMIN"])
     dev(["Engineer / reviewer"])
 
-    subgraph host["FinPilot (internal, single host, docker compose)"]
-        web["Web UI<br/>Next.js 15<br/>:3000"]
-        api["FinPilot API<br/>FastAPI /api/v1<br/>:8000"]
-        db[("PostgreSQL 16<br/>finpilot")]
+    subgraph host["FinPilot - single host, docker compose"]
+        proxy["Caddy TLS proxy<br/>:8443 (optional)"]
+        web["Web UI<br/>Next.js :3000"]
+        api["FinPilot API<br/>FastAPI /api/v1 :8000"]
+        db[("PostgreSQL 16")]
     end
 
-    csv[/"Synthetic CSV files<br/>data/raw/*.csv"/]
-    gh["GitHub<br/>repo + Actions CI"]
+    csv[/"Synthetic CSVs<br/>data/raw/*.csv"/]
+    gh["GitHub<br/>repo + Actions"]
 
-    viewer -- "HTTPS (TLS proxy profile)<br/>search, portfolio, ledger, goals" --> web
+    viewer -- "search, portfolio,<br/>ledger, goals" --> web
     admin -- "upload transactions CSV,<br/>review row errors" --> web
-    web -- "same-origin /api/v1/*<br/>rewrite proxy, session cookie" --> api
+    viewer -. "https" .-> proxy
+    proxy -.-> web
+    web -- "same-origin /api/v1/*<br/>rewrite, session cookie" --> api
     api -- "asyncpg pool,<br/>parameterised SQL" --> db
-    csv -- "seed CLI (startup) /<br/>admin upload" --> api
+    csv -- "seed at start-up /<br/>admin upload" --> api
     dev -- "push / PR" --> gh
-    gh -. "lint, types, migrations,<br/>tests, image build" .-> host
-    dev -- "Swagger UI /docs,<br/>psql on 127.0.0.1:5433" --> api
+    gh -. "CI: lint, types, migrations,<br/>tests, images, smoke test" .-> host
+    dev -- "Swagger /docs,<br/>psql 127.0.0.1:5433" --> api

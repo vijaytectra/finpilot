@@ -95,29 +95,46 @@ function AdminImport() {
         description="Validate and load a transactions CSV. Valid rows are imported, exact duplicates are skipped and invalid rows are rejected with a reason."
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload file</CardTitle>
-          <CardDescription>
-            Header must match the transactions.csv layout. Re-uploading the same file is safe: unchanged rows count as
-            duplicates.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <UploadDropzone key={freshId ?? "initial"} onUpload={onUpload} uploading={upload.isPending} progress={progress} />
-          {uploadError ? (
-            <ErrorState
-              error={uploadError}
-              title={
-                isApiError(uploadError) && [413, 415, 422].includes(uploadError.status)
-                  ? "The file was refused"
-                  : undefined
-              }
-              compact
+      <div className="grid items-start gap-6 xl:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Upload file</CardTitle>
+            <CardDescription>
+              Header must match the transactions.csv layout. Re-uploading the same file is safe: unchanged rows count as
+              duplicates.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <UploadDropzone key={freshId ?? "initial"} onUpload={onUpload} uploading={upload.isPending} progress={progress} />
+            {uploadError ? (
+              <ErrorState
+                error={uploadError}
+                title={
+                  isApiError(uploadError) && [413, 415, 422].includes(uploadError.status)
+                    ? "The file was refused"
+                    : undefined
+                }
+                compact
+              />
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Import history</CardTitle>
+            <CardDescription>Seed loads and uploads, newest first. Select one to see its rejected rows.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ImportHistory
+              page={historyPage}
+              selectedId={batchId}
+              onPageChange={(p) => update({ history_page: p === 1 ? null : p })}
+              onSelect={(id) => update({ batch: id, errors_page: null })}
             />
-          ) : null}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {batchId ? (
         <Card>
@@ -153,21 +170,6 @@ function AdminImport() {
           </CardContent>
         </Card>
       ) : null}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Import history</CardTitle>
-          <CardDescription>Seed loads and uploads, newest first. Select one to see its rejected rows.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ImportHistory
-            page={historyPage}
-            selectedId={batchId}
-            onPageChange={(p) => update({ history_page: p === 1 ? null : p })}
-            onSelect={(id) => update({ batch: id, errors_page: null })}
-          />
-        </CardContent>
-      </Card>
     </div>
   );
 }

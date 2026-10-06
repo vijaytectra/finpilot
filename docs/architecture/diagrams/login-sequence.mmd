@@ -3,7 +3,7 @@ sequenceDiagram
     actor U as User (browser)
     participant W as Next.js (web :3000)
     participant A as API /api/v1/auth
-    participant L as Login rate limiter<br/>(in-process per worker,<br/>5/min per client IP + email)
+    participant L as Login rate limiter<br/>(in-process per worker: 5/min per<br/>client IP + email AND 10/min per email)
     participant DB as PostgreSQL (users)
 
     U->>W: GET /customers (no cookie)
@@ -11,9 +11,9 @@ sequenceDiagram
     U->>W: POST /api/v1/auth/login {email, password}
     W->>A: proxied (rewrite), same origin
     A->>A: Pydantic LoginRequest (trim + lower-case email, length bounds)
-    A->>L: hit(ip|email)
-    alt 6th attempt within 60 s
-        L-->>A: retry_after
+    A->>L: hit(ip|email) and hit(email)
+    alt over 5 per (IP, email) or 10 per email within 60 s
+        L-->>A: retry_after (either budget exhausted)
         A-->>U: 429 RATE_LIMITED (error envelope + request_id)
     end
     A->>DB: SELECT user WHERE email = lower(:email)
@@ -22,7 +22,7 @@ sequenceDiagram
     alt unknown user / wrong password / inactive
         A-->>U: 401 INVALID_CREDENTIALS (one message for all three)
     else valid
-        A->>L: reset(ip|email)
+        A->>L: reset both budgets
         A->>DB: UPDATE last_login_at (+ rehash if params changed), then COMMIT
         A->>A: issue JWT HS256 {sub, role, iat, exp=+60 min, iss}
         A-->>W: 200 {user, expires_at} + Set-Cookie finpilot_session<br/>HttpOnly, SameSite=Lax, Path=/, Secure (when HTTPS)

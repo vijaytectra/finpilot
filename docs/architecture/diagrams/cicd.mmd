@@ -6,7 +6,7 @@ flowchart TB
         a1["uv sync --locked"] --> a2["ruff check + format --check"] --> a4["mypy --strict"]
         a4 --> a5["alembic upgrade head<br/>(empty PostgreSQL 16 service)"] --> a6["alembic check<br/>(models = migrations)"]
         a6 --> a7["alembic downgrade base<br/>&& upgrade head"] --> a8["pytest + coverage<br/>(real PostgreSQL)"]
-        w1["web job: lint, typecheck,<br/>test, next build<br/>(agreed design, not yet in ci.yml)"]
+        w1["web job (Node 22): npm ci, lint,<br/>typecheck, Vitest, next build"]
     end
 
     subgraph dk["docker.yml - on PR and push to main"]

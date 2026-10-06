@@ -6,8 +6,8 @@ flowchart TB
         proxy["proxy - caddy:2-alpine (profile 'proxy')<br/>https://localhost:8443, tls internal<br/>HSTS, nosniff, X-Frame-Options DENY<br/>/api/*, /docs, /openapi.json -> api:8000<br/>everything else -> web:3000"]
         subgraph net["private compose network"]
             direction LR
-            web["web - Next.js standalone, node:22-alpine<br/>non-root uid 10001, :3000<br/>rewrites /api/* -> API_INTERNAL_URL=http://api:8000<br/>HEALTHCHECK GET /login"]
-            api["api - python:3.12-slim, non-root uid 10001, :8000<br/>entrypoint: alembic upgrade head<br/>-> python -m app.cli seed (SEED_ON_START, idempotent)<br/>-> uvicorn --workers 2 --proxy-headers<br/>--forwarded-allow-ips FORWARDED_ALLOW_IPS<br/>HEALTHCHECK GET /api/v1/health (DB-aware)"]
+            web["web - Next.js 15.5 standalone, node:22-alpine<br/>non-root uid 10001, :3000<br/>rewrites /api/* -> API_INTERNAL_URL=http://api:8000<br/>HEALTHCHECK GET /login"]
+            api["api - python:3.12-slim, non-root uid 10001, :8000<br/>entrypoint: alembic upgrade head<br/>-> python -m app.cli seed (SEED_ON_START, idempotent)<br/>-> uvicorn --workers 2 --proxy-headers<br/>--forwarded-allow-ips FORWARDED_ALLOW_IPS<br/>(default 127.0.0.1: web forwards client XFF verbatim)<br/>HEALTHCHECK GET /api/v1/health (DB-aware)"]
             db[("db - postgres:16-alpine<br/>healthcheck pg_isready<br/>volume pgdata")]
         end
         envf[/".env (git-ignored, from .env.example)<br/>POSTGRES_PASSWORD, JWT_SECRET,<br/>ENVIRONMENT, COOKIE_SECURE, SEED_ON_START"/]

@@ -53,7 +53,7 @@ async def test_create_goal_returns_201_location_and_db_assigned_id(
         ({"priority": "URGENT"}, "priority"),
         ({"goal_name": "   "}, "goal_name"),
         ({"target_date": "2020-01-01"}, "target_date"),
-        ({"current_funded_amount": 3000000}, ""),  # funded > target (model-level rule)
+        ({"current_funded_amount": 3000000}, "current_funded_amount"),  # funded > target
     ],
 )
 async def test_create_goal_validation(
@@ -64,6 +64,24 @@ async def test_create_goal_validation(
     error = response.json()["error"]
     assert error["code"] == "VALIDATION_ERROR"
     assert field in {d["field"] for d in error["details"]}
+
+
+async def test_cross_field_error_names_the_field_with_a_clean_message(
+    viewer: httpx.AsyncClient,
+) -> None:
+    # Regression: was reported with field "" and a "Value error, " prefix.
+    response = await viewer.post(
+        "/api/v1/customers/C0010/goals", json=_goal(current_funded_amount=3000000)
+    )
+    detail = response.json()["error"]["details"][0]
+    assert detail["field"] == "current_funded_amount"
+    assert detail["message"] == "cannot exceed target_amount"
+
+
+async def test_whole_body_error_has_null_field(viewer: httpx.AsyncClient) -> None:
+    detail = (await viewer.patch("/api/v1/goals/G00001", json={})).json()["error"]["details"][0]
+    assert detail["field"] is None
+    assert detail["message"] == "at least one field must be provided"
 
 
 async def test_create_goal_for_unknown_customer_is_404(viewer: httpx.AsyncClient) -> None:

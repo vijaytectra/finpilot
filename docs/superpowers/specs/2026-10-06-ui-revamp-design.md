@@ -56,7 +56,9 @@ switches at `md` instead.
   labels 12 px uppercase, tracking-wide, muted. Money and quantities use tabular figures
   (`tabular-nums`), right-aligned in tables.
 * **KPI card:** small muted label → 28 px value → one context line.
-* **Tables:** ~40 px rows, sticky muted header, hover highlight, compact status badges.
+* **Tables:** ~40 px rows, muted uppercase header, hover highlight, compact status badges.
+  (Not sticky: every table is paginated inside a horizontal-scroll container, where a
+  sticky header would never engage.)
 * **Charts:** light gridlines, no chart junk, takeaway titles, data table always
   available (existing toggle / table kept).
 * **Dark mode:** kept; tokens retuned to the new palette.
@@ -67,9 +69,9 @@ switches at `md` instead.
 | Page | Layout |
 |---|---|
 | Login | Split screen: navy brand panel (logo, one-line description, synthetic-data note) + sign-in card. Phones: card only. |
-| Overview | 6 KPI cards in one row (wraps 3×2 below 1280 px); then 2-col grid: net flows (wide) · allocation; top customers · top instruments; underfunded goals · data quality. |
+| Overview | 6 KPI cards in one row (wraps 3×2 below 1280 px); then three 2:1 rows from 1024 px (was 1280 px): allocation (wide) · top customers; net flows (wide) · top instruments; underfunded goals (wide) · data quality. Pairings unchanged: the allocation donut + legend needs the wide column. |
 | Customers | Header + one-line toolbar (search, KYC, segment, sort) + full-width dense table; pagination in the table footer. |
-| Customer detail | Header card (name, ID, badges, contact in one row, 4 mini KPIs) + **underline tabs** (Overview · Portfolio · Transactions · Goals) instead of pills; tab content in the 2-col grid. |
+| Customer detail | Identity header card (name, ID, KYC/segment badges, location · e-mail · phone, customer-since) + underline route tabs (Overview · Portfolio · Transactions · Goals, already underline-style; kept). No mini KPIs in the header: the Overview tab already opens with value / invested / P&L / accounts cards, and showing them twice would also add a portfolio request on every tab. |
 | Portfolio | Freshness banner, account cards row, positions table full width. |
 | Transactions | One-row filter toolbar above a full-width table; reversed/pending row styling kept. |
 | Goals | Card grid (3 across ≥ 1280 px, 2 across 768–1279 px) with funded-% bars; "Add goal" in the section header. |

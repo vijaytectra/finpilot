@@ -35,7 +35,7 @@ export function CustomerHeader({ customer }: { customer: CustomerProfile }) {
 
       <Card className="py-5">
         <CardContent className="flex flex-col gap-3 px-5 md:flex-row md:items-end md:justify-between">
-          <div className="space-y-2">
+          <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
               <h1 className="text-2xl font-semibold tracking-tight">{customer.full_name}</h1>
               <span className="tabular rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
@@ -53,7 +53,7 @@ export function CustomerHeader({ customer }: { customer: CustomerProfile }) {
               <li className="flex min-w-0 items-center gap-1.5">
                 <Mail className="size-3.5 shrink-0" aria-hidden />
                 <span className="sr-only">Email: </span>
-                <a href={`mailto:${customer.email}`} className="truncate hover:text-foreground hover:underline">
+                <a href={`mailto:${customer.email}`} className="min-w-0 truncate hover:text-foreground hover:underline">
                   {customer.email}
                 </a>
               </li>

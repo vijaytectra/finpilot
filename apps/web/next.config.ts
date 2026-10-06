@@ -1,9 +1,14 @@
+import path from "node:path";
+
 import type { NextConfig } from "next";
 
 const apiInternalUrl = process.env.API_INTERNAL_URL ?? "http://localhost:8000";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Pin tracing to this app so the standalone bundle is laid out as .next/standalone/server.js
+  // regardless of lockfiles in parent directories.
+  outputFileTracingRoot: path.join(__dirname),
   poweredByHeader: false,
   reactStrictMode: true,
   async rewrites() {

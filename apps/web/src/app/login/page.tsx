@@ -45,7 +45,7 @@ export default function LoginPage() {
           </p>
           <p className="flex items-center justify-center gap-1.5">
             <ShieldCheck className="size-3.5" aria-hidden />
-            Session is kept in a secure, HttpOnly cookie.
+            Your session lives in an HttpOnly cookie, never in page storage.
           </p>
         </div>
       </div>

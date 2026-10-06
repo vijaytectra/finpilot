@@ -57,7 +57,9 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Slate neutrals, one deep indigo primary, semantic green / amber / red. */
+/* Slate neutrals, one deep indigo primary, semantic green / amber / red.
+   Chart slots: fixed categorical order (validated for CVD separation; light-mode
+   slots 3-5 sit below 3:1 so every chart ships a data table alongside). */
 :root {
   --background: oklch(0.984 0.003 247.858);
   --foreground: oklch(0.208 0.042 265.755);
@@ -85,12 +87,12 @@
   --border: oklch(0.929 0.013 255.508);
   --input: oklch(0.869 0.022 252.894);
   --ring: oklch(0.585 0.233 277.117);
-  --chart-1: oklch(0.457 0.24 277.023);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.645 0.246 16.439);
-  --chart-5: oklch(0.627 0.194 149.214);
-  --chart-6: oklch(0.554 0.046 257.417);
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
+  --chart-6: #008300;
   --radius: 0.5rem;
   --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.279 0.041 260.031);
@@ -129,12 +131,12 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.673 0.182 276.935);
-  --chart-1: oklch(0.673 0.182 276.935);
-  --chart-2: oklch(0.704 0.14 182.503);
-  --chart-3: oklch(0.828 0.189 84.429);
-  --chart-4: oklch(0.712 0.194 13.428);
-  --chart-5: oklch(0.792 0.209 151.711);
-  --chart-6: oklch(0.711 0.035 256.788);
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
+  --chart-5: #d55181;
+  --chart-6: #008300;
   --sidebar: oklch(0.208 0.042 265.755);
   --sidebar-foreground: oklch(0.968 0.007 247.896);
   --sidebar-primary: oklch(0.673 0.182 276.935);

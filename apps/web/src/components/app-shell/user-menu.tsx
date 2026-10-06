@@ -40,7 +40,7 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
     ) : (
       <div className="flex items-center gap-2 p-2" aria-hidden>
         <Skeleton className="size-8 rounded-full" />
-        <div className="flex-1 space-y-1.5">
+        <div className="hidden flex-1 space-y-1.5 xl:block">
           <Skeleton className="h-3 w-24" />
           <Skeleton className="h-3 w-14" />
         </div>
@@ -54,10 +54,13 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          "flex items-center gap-2 rounded-md text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-          compact ? "rounded-full" : "w-full p-2 hover:bg-muted",
+          "flex items-center gap-2 rounded-md text-left outline-none focus-visible:ring-3",
+          compact
+            ? "rounded-full focus-visible:ring-ring/50"
+            : "w-full justify-center p-2 text-sidebar-foreground hover:bg-sidebar-accent focus-visible:ring-sidebar-ring/60 xl:justify-start",
         )}
         aria-label={`Account menu for ${user.full_name}`}
+        title={compact ? undefined : user.full_name}
       >
         <Avatar className="size-8">
           <AvatarFallback className="bg-accent text-xs font-semibold text-accent-foreground">
@@ -66,11 +69,11 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
         </Avatar>
         {compact ? null : (
           <>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium">{user.full_name}</span>
-              <span className="block truncate text-xs text-muted-foreground">{roleLabel}</span>
+            <span className="hidden min-w-0 flex-1 xl:block">
+              <span className="block truncate text-sm font-medium text-white">{user.full_name}</span>
+              <span className="block truncate text-xs text-sidebar-foreground/70">{roleLabel}</span>
             </span>
-            <ChevronsUpDown className="size-4 text-muted-foreground" aria-hidden />
+            <ChevronsUpDown className="hidden size-4 text-sidebar-foreground/70 xl:block" aria-hidden />
           </>
         )}
       </DropdownMenuTrigger>

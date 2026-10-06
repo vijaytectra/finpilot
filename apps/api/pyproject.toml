@@ -42,8 +42,14 @@ ignore = [
     "RUF001",  # rupee sign in strings
 ]
 
+[tool.ruff.lint.isort]
+known-third-party = ["alembic"]
+
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "S106", "PLR2004"]
+# Rule SQL is assembled from module-level constant fragments; every runtime value is a bound
+# parameter. Reviewed; see the module docstring.
+"app/importers/transactions.py" = ["S608"]
 
 [tool.mypy]
 python_version = "3.12"

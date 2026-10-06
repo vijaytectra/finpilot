@@ -3,7 +3,15 @@ from decimal import Decimal
 from enum import StrEnum
 from typing import Annotated, Self
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 
 from app.models.enums import Band, GoalType
 from app.schemas.common import ApiModel, MoneyOut, PercentOut
@@ -58,11 +66,16 @@ class GoalCreate(BaseModel):
     target_date: date
     priority: Band = Band.MEDIUM
 
-    @model_validator(mode="after")
-    def _funded_within_target(self) -> Self:
-        if self.current_funded_amount > self.target_amount:
-            raise ValueError("current_funded_amount cannot exceed target_amount")
-        return self
+    # Field-level (not model-level) so the 422 detail names `current_funded_amount` and
+    # clients can attach the message to that input. target_amount is declared first, so it is
+    # already in info.data when valid; if it is invalid its own error is reported instead.
+    @field_validator("current_funded_amount")
+    @classmethod
+    def _funded_within_target(cls, value: Decimal, info: ValidationInfo) -> Decimal:
+        target = info.data.get("target_amount")
+        if target is not None and value > target:
+            raise ValueError("cannot exceed target_amount")
+        return value
 
 
 class GoalUpdate(BaseModel):

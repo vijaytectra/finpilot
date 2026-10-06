@@ -35,4 +35,10 @@ class SlidingWindowLimiter:
             self._events.pop(key, None)
 
 
+# Two independent budgets for sign-in attempts:
+# * per client IP + e-mail: stops one client hammering one account;
+# * per e-mail alone: the client IP comes from proxy headers and can be spoofed, so this
+#   budget is the one an attacker cannot reset by rotating addresses. Its cost is that a
+#   flood against one account can lock that account's sign-in for up to a minute.
 login_limiter = SlidingWindowLimiter(max_events=5, window_seconds=60)
+account_limiter = SlidingWindowLimiter(max_events=10, window_seconds=60)

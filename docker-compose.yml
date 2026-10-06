@@ -40,9 +40,11 @@ services:
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
       SEED_ON_START: ${SEED_ON_START:-true}
       UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
-      # Only the web/proxy containers can reach the api on this private network; trust their
-      # X-Forwarded-For so per-client login rate limiting sees the real client address.
-      FORWARDED_ALLOW_IPS: "*"
+      # Do NOT trust X-Forwarded-For from the web container: Next.js rewrites pass a client's
+      # own header through verbatim, so trusting it would let callers forge their address.
+      # (Verified end to end.) Behind a real edge proxy that *overwrites* the header, set this
+      # to that proxy's address. Login limits also apply per account, which is unspoofable.
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-127.0.0.1}
     ports:
       - "127.0.0.1:${API_PORT:-8000}:8000"
     depends_on:

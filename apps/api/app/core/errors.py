@@ -102,9 +102,13 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def _validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
         details = [
             {
-                "field": ".".join(str(p) for p in err["loc"] if p not in ("body", "query", "path")),
+                # None (not "") when the error concerns the whole body, e.g. an empty PATCH.
+                "field": ".".join(str(p) for p in err["loc"] if p not in ("body", "query", "path"))
+                or None,
                 "location": str(err["loc"][0]) if err["loc"] else None,
-                "message": err["msg"],
+                # Pydantic prefixes custom ValueErrors with "Value error, "; clients show the
+                # message to users, so drop the implementation detail.
+                "message": err["msg"].removeprefix("Value error, "),
                 "type": err["type"],
             }
             for err in exc.errors()

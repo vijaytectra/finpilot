@@ -16,7 +16,7 @@ export function NetFlowsCard({ flows }: { flows: MonthlyFlow[] }) {
     <Card>
       <Tabs defaultValue="chart" className="gap-0">
         <CardHeader>
-          <CardTitle>Net flows</CardTitle>
+          <CardTitle>Net invested per month</CardTitle>
           <CardDescription>Buys minus sells per month, last 12 months (settled and pending)</CardDescription>
           <CardAction>
             <TabsList aria-label="Net flows view">

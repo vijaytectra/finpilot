@@ -37,8 +37,8 @@ export function OverviewPage() {
         <>
           <HeadlineCards headline={data.headline} />
 
-          <div className="grid items-start gap-6 xl:grid-cols-3">
-            <Card className="xl:col-span-2">
+          <div className="grid items-start gap-6 lg:grid-cols-3">
+            <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle>Asset allocation</CardTitle>
                 <CardDescription>All customer holdings by asset class, at current prices</CardDescription>
@@ -54,15 +54,15 @@ export function OverviewPage() {
             <TopCustomersCard customers={data.top_customers} />
           </div>
 
-          <div className="grid items-start gap-6 xl:grid-cols-3">
-            <div className="xl:col-span-2">
+          <div className="grid items-start gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2">
               <NetFlowsCard flows={data.monthly_net_flows} />
             </div>
             <TopInstrumentsCard instruments={data.top_instruments_by_holders} />
           </div>
 
-          <div className="grid items-start gap-6 xl:grid-cols-3">
-            <div className="xl:col-span-2">
+          <div className="grid items-start gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2">
               <UnderfundedGoalsCard goals={data.high_priority_underfunded_goals} />
             </div>
             <DataQualityCard exceptions={data.data_quality} />
@@ -78,8 +78,8 @@ function OverviewSkeleton() {
     <div className="space-y-6" aria-busy="true" aria-label="Loading overview">
       <HeadlineCardsSkeleton />
       {[0, 1].map((row) => (
-        <div key={row} className="grid gap-6 xl:grid-cols-3">
-          <Card className="xl:col-span-2">
+        <div key={row} className="grid gap-6 lg:grid-cols-3">
+          <Card className="lg:col-span-2">
             <CardHeader>
               <Skeleton className="h-5 w-40" />
               <Skeleton className="h-4 w-64" />

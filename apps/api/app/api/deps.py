@@ -2,7 +2,7 @@ from collections.abc import Awaitable, Callable
 from typing import Annotated
 
 import structlog
-from fastapi import Depends, Request
+from fastapi import Depends, Path, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
@@ -15,6 +15,14 @@ from app.repositories.users import UserRepository
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
+
+# Bounded pagination: a hostile page_size cannot make the API materialise a whole table.
+PageParam = Annotated[int, Query(ge=1, le=100_000, description="1-based page number")]
+PageSizeParam = Annotated[int, Query(ge=1, le=100, description="Items per page (max 100)")]
+
+CustomerIdPath = Annotated[
+    str, Path(pattern=r"^C\d{4,}$", examples=["C0026"], description="Customer id, e.g. C0026")
+]
 
 
 async def get_current_user(request: Request, session: SessionDep, settings: SettingsDep) -> User:

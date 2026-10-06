@@ -1,0 +1,3477 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "FinPilot API",
+    "summary": "Investment portfolio & goal monitoring for internal wealth-service teams.",
+    "description": "All data is synthetic. Authentication uses an HttpOnly session cookie set by `POST /api/v1/auth/login`; in Swagger UI, call login first and the browser sends the cookie automatically.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Liveness + readiness (database reachability). Public; exposes no secrets.",
+        "operationId": "health_api_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Sign in; sets an HttpOnly session cookie",
+        "description": "On success the JWT is delivered **only** as an `HttpOnly`, `SameSite=Lax` cookie (never in the body), so page scripts cannot read it. Failed attempts are rate limited per client IP + e-mail (5 per minute).",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Clear the session cookie",
+        "operationId": "logout_api_v1_auth_logout_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "The signed-in user",
+        "operationId": "me_api_v1_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customers": {
+      "get": {
+        "tags": [
+          "customers"
+        ],
+        "summary": "Search and page customers",
+        "description": "`search` matches case-insensitively anywhere in customer id, name, e-mail or city (trigram-indexed). Results include account count and current AUM.",
+        "operationId": "list_customers_api_v1_customers_get",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": [
+                "aarav"
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "name": "kyc_status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/KycStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kyc Status"
+            }
+          },
+          {
+            "name": "segment",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Segment"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Segment"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "customer_id",
+                "full_name",
+                "city",
+                "-aum",
+                "aum",
+                "-onboarded_at"
+              ],
+              "type": "string",
+              "default": "customer_id",
+              "title": "Sort"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100000,
+              "minimum": 1,
+              "description": "1-based page number",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "1-based page number"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Items per page (max 100)",
+              "default": 20,
+              "title": "Page Size"
+            },
+            "description": "Items per page (max 100)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        }
+      }
+    },
+    "/api/v1/customers/{customer_id}": {
+      "get": {
+        "tags": [
+          "customers"
+        ],
+        "summary": "Customer profile with latest risk assessment",
+        "operationId": "get_customer_api_v1_customers__customer_id__get",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^C\\d{4,}$",
+              "description": "Customer id, e.g. C0026",
+              "examples": [
+                "C0026"
+              ],
+              "title": "Customer Id"
+            },
+            "description": "Customer id, e.g. C0026"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerProfile"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        }
+      }
+    },
+    "/api/v1/customers/{customer_id}/portfolio": {
+      "get": {
+        "tags": [
+          "portfolio"
+        ],
+        "summary": "Portfolio valuation: totals, per-account totals, allocation and positions",
+        "description": "Valued from the latest holdings snapshot at the latest synthetic prices. All aggregation runs in PostgreSQL (one GROUPING SETS query for account/asset-class/grand totals). Every account is listed, including those without positions. `freshness` tells the client which snapshot and price dates the numbers reflect. Each figure is computed exactly and rounded half-up to 2 dp independently, so a sum of rounded parts can differ from the rounded total by up to 0.01 per part.",
+        "operationId": "get_portfolio_api_v1_customers__customer_id__portfolio_get",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^C\\d{4,}$",
+              "description": "Customer id, e.g. C0026",
+              "examples": [
+                "C0026"
+              ],
+              "title": "Customer Id"
+            },
+            "description": "Customer id, e.g. C0026"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Portfolio"
+                },
+                "example": {
+                  "customer_id": "C0026",
+                  "currency": "INR",
+                  "freshness": {
+                    "snapshot_date": "2026-09-18",
+                    "price_as_of": "2026-09-18",
+                    "oldest_price_as_of": "2026-09-18",
+                    "stale_prices": false
+                  },
+                  "totals": {
+                    "market_value": 1953574.59,
+                    "cost_basis": 1964360.97,
+                    "unrealized_pnl": -10786.37,
+                    "unrealized_pnl_pct": -0.55,
+                    "positions": 19
+                  },
+                  "accounts": [
+                    {
+                      "account_id": "A00034",
+                      "account_type": "RETIREMENT",
+                      "provider": "Zenith Broking",
+                      "status": "ACTIVE",
+                      "opened_at": "2026-01-27",
+                      "market_value": 1245566.63,
+                      "cost_basis": 1218651.57,
+                      "unrealized_pnl": 26915.06,
+                      "unrealized_pnl_pct": 2.21,
+                      "positions": 10
+                    }
+                  ],
+                  "allocation": [
+                    {
+                      "asset_class": "EQUITY",
+                      "market_value": 1804340.02,
+                      "weight_pct": 92.36,
+                      "positions": 12
+                    }
+                  ],
+                  "positions": [
+                    {
+                      "account_id": "A00035",
+                      "instrument_id": "I0019",
+                      "symbol": "EQ019",
+                      "instrument_name": "FinPilot Equity 19",
+                      "asset_class": "EQUITY",
+                      "sector": "Healthcare",
+                      "risk_band": "MEDIUM",
+                      "quantity": 166.282,
+                      "avg_cost": 2551.4,
+                      "last_price": 2215.39,
+                      "price_as_of": "2026-09-18",
+                      "market_value": 368379.48,
+                      "cost_basis": 424251.89,
+                      "unrealized_pnl": -55872.41,
+                      "unrealized_pnl_pct": -13.17,
+                      "weight_pct": 18.86
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        }
+      }
+    },
+    "/api/v1/customers/{customer_id}/transactions": {
+      "get": {
+        "tags": [
+          "transactions"
+        ],
+        "summary": "Server-side filtered, sorted and paginated transaction ledger",
+        "description": "All filters combine with AND. `transaction_type` and `status` accept repeated values (`?transaction_type=BUY&transaction_type=SELL`). Ordering is deterministic (ties broken by transaction_id) so pages never shift between requests.",
+        "operationId": "list_transactions_api_v1_customers__customer_id__transactions_get",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^C\\d{4,}$",
+              "description": "Customer id, e.g. C0026",
+              "examples": [
+                "C0026"
+              ],
+              "title": "Customer Id"
+            },
+            "description": "Customer id, e.g. C0026"
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
+            "name": "account_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^A\\d{5,}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Account Id"
+            }
+          },
+          {
+            "name": "instrument_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^I\\d{4,}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrument Id"
+            }
+          },
+          {
+            "name": "transaction_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TransactionType"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Transaction Type"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TransactionStatus"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "-trade_date",
+                "trade_date",
+                "-amount",
+                "amount"
+              ],
+              "type": "string",
+              "default": "-trade_date",
+              "title": "Sort"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100000,
+              "minimum": 1,
+              "description": "1-based page number",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "1-based page number"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Items per page (max 100)",
+              "default": 25,
+              "title": "Page Size"
+            },
+            "description": "Items per page (max 100)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        }
+      }
+    },
+    "/api/v1/customers/{customer_id}/transactions/facets": {
+      "get": {
+        "tags": [
+          "transactions"
+        ],
+        "summary": "Filter options (accounts, instruments, types, statuses, date range) with counts",
+        "operationId": "transaction_facets_api_v1_customers__customer_id__transactions_facets_get",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^C\\d{4,}$",
+              "description": "Customer id, e.g. C0026",
+              "examples": [
+                "C0026"
+              ],
+              "title": "Customer Id"
+            },
+            "description": "Customer id, e.g. C0026"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionFacets"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        }
+      }
+    },
+    "/api/v1/customers/{customer_id}/goals": {
+      "get": {
+        "tags": [
+          "goals"
+        ],
+        "summary": "Customer goals with funded % and consistency flags",
+        "description": "`flags` highlights OVERDUE (date passed, not fully funded), OVERFUNDED, NAME_TYPE_MISMATCH (goal_name describes a different goal_type) and HIGH_PRIORITY_UNDERFUNDED (< 25 %).",
+        "operationId": "list_goals_api_v1_customers__customer_id__goals_get",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^C\\d{4,}$",
+              "description": "Customer id, e.g. C0026",
+              "examples": [
+                "C0026"
+              ],
+              "title": "Customer Id"
+            },
+            "description": "Customer id, e.g. C0026"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoalList"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "goals"
+        ],
+        "summary": "Create a validated goal",
+        "description": "Rules: target_amount > 0; 0 <= current_funded_amount <= target_amount; target_date in the future. The goal id is assigned by the database.",
+        "operationId": "create_goal_api_v1_customers__customer_id__goals_post",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^C\\d{4,}$",
+              "description": "Customer id, e.g. C0026",
+              "examples": [
+                "C0026"
+              ],
+              "title": "Customer Id"
+            },
+            "description": "Customer id, e.g. C0026"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoalCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoalOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        }
+      }
+    },
+    "/api/v1/goals/{goal_id}": {
+      "patch": {
+        "tags": [
+          "goals"
+        ],
+        "summary": "Edit selected goal fields",
+        "description": "Partial update; only provided fields change. Cross-field rules are validated against the merged result. A changed target_date must be in the future; an overdue goal can still be edited without changing its date.",
+        "operationId": "update_goal_api_v1_goals__goal_id__patch",
+        "parameters": [
+          {
+            "name": "goal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^G\\d{5,}$",
+              "examples": [
+                "G00007"
+              ],
+              "title": "Goal Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoalUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoalOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        }
+      }
+    },
+    "/api/v1/reports/overview": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Firm-wide operational overview",
+        "description": "Headline counts and AUM, top 10 customers by AUM, dataset-wide asset allocation, monthly settled BUY/SELL net flows for the last 12 months, top instruments by distinct holders, HIGH-priority goals under 25 % funded and data-quality exception counts. Every figure is an aggregate query; nothing is hard-coded.",
+        "operationId": "overview_api_v1_reports_overview_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Overview"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/imports/transactions": {
+      "post": {
+        "tags": [
+          "admin: imports"
+        ],
+        "summary": "Validate and import a transactions CSV (ADMIN)",
+        "description": "Pipeline: structural checks (size, type, UTF-8, exact header) -> COPY into a staging table -> SQL rule validation -> merge valid rows, in one DB transaction.\n\n* Rows with any rule violation are **rejected** with line number and reason; the rest are imported (partial acceptance).\n* Rows already present with identical values are counted as `duplicate_rows` and skipped, so re-uploading a file is idempotent.\n* A known `transaction_id` with *different* values is rejected (`CONFLICTS_WITH_EXISTING`), never overwritten.\n* A structurally invalid file is refused as a whole with 413/415/422.\n\nThe response returns up to 500 row errors; page through all of them with `GET /admin/imports/{id}/errors`.",
+        "operationId": "upload_transactions_api_v1_admin_imports_transactions_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_transactions_api_v1_admin_imports_transactions_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportReport"
+                },
+                "example": {
+                  "id": "e1b20da2-5727-4c3d-94c3-01aed1d1d4e7",
+                  "kind": "TRANSACTIONS",
+                  "source": "UPLOAD",
+                  "status": "COMPLETED",
+                  "filename": "transactions.csv",
+                  "file_sha256": "0096865ae283c06b14ebef5f74aed8ebc7692af5722aba664c26d16a641499b6",
+                  "file_bytes": 304663,
+                  "uploaded_by": "admin@finpilot.local",
+                  "total_rows": 4554,
+                  "inserted_rows": 0,
+                  "duplicate_rows": 4550,
+                  "rejected_rows": 4,
+                  "started_at": "2026-10-06T12:39:48.424036Z",
+                  "completed_at": "2026-10-06T12:39:48.433073Z",
+                  "errors_total": 4,
+                  "errors_truncated": false,
+                  "errors": [
+                    {
+                      "line_number": 4552,
+                      "severity": "REJECTED",
+                      "error_code": "DUPLICATE_IN_FILE",
+                      "field": "transaction_id",
+                      "message": "transaction_id T0000026 already appears on line 27",
+                      "raw_data": {
+                        "transaction_id": "T0000026",
+                        "amount": "16686.83",
+                        "status": "SETTLED"
+                      }
+                    },
+                    {
+                      "line_number": 4553,
+                      "severity": "REJECTED",
+                      "error_code": "UNKNOWN_INSTRUMENT",
+                      "field": "instrument_id",
+                      "message": "instrument_id I9999 does not exist",
+                      "raw_data": {
+                        "transaction_id": "T0004551",
+                        "instrument_id": "I9999",
+                        "amount": "1000"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request Entity Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported Media Type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/imports": {
+      "get": {
+        "tags": [
+          "admin: imports"
+        ],
+        "summary": "Import history (seed and uploads), newest first (ADMIN)",
+        "operationId": "list_imports_api_v1_admin_imports_get",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ImportKind"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100000,
+              "minimum": 1,
+              "description": "1-based page number",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "1-based page number"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Items per page (max 100)",
+              "default": 20,
+              "title": "Page Size"
+            },
+            "description": "Items per page (max 100)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportBatchPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/imports/{batch_id}": {
+      "get": {
+        "tags": [
+          "admin: imports"
+        ],
+        "summary": "One import batch (ADMIN)",
+        "operationId": "get_import_api_v1_admin_imports__batch_id__get",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Batch Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportBatchOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/imports/{batch_id}/errors": {
+      "get": {
+        "tags": [
+          "admin: imports"
+        ],
+        "summary": "Row-level rejections of a batch, by line number (ADMIN)",
+        "operationId": "list_import_errors_api_v1_admin_imports__batch_id__errors_get",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Batch Id"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100000,
+              "minimum": 1,
+              "description": "1-based page number",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "1-based page number"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Items per page (max 100)",
+              "default": 50,
+              "title": "Page Size"
+            },
+            "description": "Items per page (max 100)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportErrorPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AccountStatus": {
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "DORMANT",
+          "CLOSED"
+        ],
+        "title": "AccountStatus"
+      },
+      "AccountType": {
+        "type": "string",
+        "enum": [
+          "BROKERAGE",
+          "MUTUAL_FUND",
+          "RETIREMENT"
+        ],
+        "title": "AccountType"
+      },
+      "AccountValuation": {
+        "properties": {
+          "market_value": {
+            "type": "number",
+            "title": "Market Value"
+          },
+          "cost_basis": {
+            "type": "number",
+            "title": "Cost Basis"
+          },
+          "unrealized_pnl": {
+            "type": "number",
+            "title": "Unrealized Pnl"
+          },
+          "unrealized_pnl_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unrealized Pnl Pct",
+            "description": "unrealized_pnl / cost_basis x 100; null when cost basis is zero"
+          },
+          "positions": {
+            "type": "integer",
+            "title": "Positions"
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "account_type": {
+            "$ref": "#/components/schemas/AccountType"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AccountStatus"
+          },
+          "opened_at": {
+            "type": "string",
+            "format": "date",
+            "title": "Opened At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "market_value",
+          "cost_basis",
+          "unrealized_pnl",
+          "unrealized_pnl_pct",
+          "positions",
+          "account_id",
+          "account_type",
+          "provider",
+          "status",
+          "opened_at"
+        ],
+        "title": "AccountValuation"
+      },
+      "AllocationRow": {
+        "properties": {
+          "asset_class": {
+            "$ref": "#/components/schemas/AssetClass"
+          },
+          "market_value": {
+            "type": "number",
+            "title": "Market Value"
+          },
+          "weight_pct": {
+            "type": "number",
+            "title": "Weight Pct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "asset_class",
+          "market_value",
+          "weight_pct"
+        ],
+        "title": "AllocationRow"
+      },
+      "AllocationSlice": {
+        "properties": {
+          "asset_class": {
+            "$ref": "#/components/schemas/AssetClass"
+          },
+          "market_value": {
+            "type": "number",
+            "title": "Market Value"
+          },
+          "weight_pct": {
+            "type": "number",
+            "title": "Weight Pct"
+          },
+          "positions": {
+            "type": "integer",
+            "title": "Positions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "asset_class",
+          "market_value",
+          "weight_pct",
+          "positions"
+        ],
+        "title": "AllocationSlice"
+      },
+      "AssetClass": {
+        "type": "string",
+        "enum": [
+          "EQUITY",
+          "ETF",
+          "MUTUAL_FUND",
+          "BOND",
+          "REIT",
+          "GSEC"
+        ],
+        "title": "AssetClass"
+      },
+      "Band": {
+        "type": "string",
+        "enum": [
+          "LOW",
+          "MEDIUM",
+          "HIGH"
+        ],
+        "title": "Band",
+        "description": "Shared LOW/MEDIUM/HIGH scale (instrument risk band, goal priority, liquidity need)."
+      },
+      "Body_upload_transactions_api_v1_admin_imports_transactions_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "description": "transactions CSV, UTF-8, max 25 MB"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_transactions_api_v1_admin_imports_transactions_post"
+      },
+      "CustomerListItem": {
+        "properties": {
+          "customer_id": {
+            "type": "string",
+            "title": "Customer Id"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "city": {
+            "type": "string",
+            "title": "City"
+          },
+          "state": {
+            "type": "string",
+            "title": "State"
+          },
+          "kyc_status": {
+            "$ref": "#/components/schemas/KycStatus"
+          },
+          "segment": {
+            "$ref": "#/components/schemas/Segment"
+          },
+          "accounts": {
+            "type": "integer",
+            "title": "Accounts"
+          },
+          "aum": {
+            "type": "number",
+            "title": "Aum"
+          }
+        },
+        "type": "object",
+        "required": [
+          "customer_id",
+          "full_name",
+          "email",
+          "city",
+          "state",
+          "kyc_status",
+          "segment",
+          "accounts",
+          "aum"
+        ],
+        "title": "CustomerListItem"
+      },
+      "CustomerPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CustomerListItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "pagination"
+        ],
+        "title": "CustomerPage"
+      },
+      "CustomerProfile": {
+        "properties": {
+          "customer_id": {
+            "type": "string",
+            "title": "Customer Id"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "city": {
+            "type": "string",
+            "title": "City"
+          },
+          "state": {
+            "type": "string",
+            "title": "State"
+          },
+          "date_of_birth": {
+            "type": "string",
+            "format": "date",
+            "title": "Date Of Birth"
+          },
+          "onboarded_at": {
+            "type": "string",
+            "format": "date",
+            "title": "Onboarded At"
+          },
+          "kyc_status": {
+            "$ref": "#/components/schemas/KycStatus"
+          },
+          "segment": {
+            "$ref": "#/components/schemas/Segment"
+          },
+          "risk_profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RiskProfileOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "accounts": {
+            "type": "integer",
+            "title": "Accounts"
+          },
+          "goals": {
+            "type": "integer",
+            "title": "Goals"
+          }
+        },
+        "type": "object",
+        "required": [
+          "customer_id",
+          "full_name",
+          "email",
+          "phone",
+          "city",
+          "state",
+          "date_of_birth",
+          "onboarded_at",
+          "kyc_status",
+          "segment",
+          "risk_profile",
+          "accounts",
+          "goals"
+        ],
+        "title": "CustomerProfile"
+      },
+      "DataFreshness": {
+        "properties": {
+          "snapshot_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Date",
+            "description": "Holdings snapshot used for valuation"
+          },
+          "price_as_of": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price As Of",
+            "description": "Latest price date among held instruments"
+          },
+          "oldest_price_as_of": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oldest Price As Of"
+          },
+          "stale_prices": {
+            "type": "boolean",
+            "title": "Stale Prices",
+            "description": "True if any price predates the snapshot date"
+          }
+        },
+        "type": "object",
+        "required": [
+          "snapshot_date",
+          "price_as_of",
+          "oldest_price_as_of",
+          "stale_prices"
+        ],
+        "title": "DataFreshness"
+      },
+      "ErrorBody": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "examples": [
+              "CUSTOMER_NOT_FOUND"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "examples": [
+              "Customer C9999 was not found"
+            ]
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id",
+            "examples": [
+              "req_3f2a9c1b7d4e5f60"
+            ]
+          },
+          "details": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "request_id"
+        ],
+        "title": "ErrorBody"
+      },
+      "ErrorDetail": {
+        "properties": {
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "ErrorDetail"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBody"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "ErrorResponse",
+        "description": "Envelope for every non-2xx response."
+      },
+      "ExceptionCount": {
+        "properties": {
+          "exception_type": {
+            "type": "string",
+            "title": "Exception Type"
+          },
+          "rule": {
+            "type": "string",
+            "title": "Rule"
+          },
+          "entity": {
+            "type": "string",
+            "title": "Entity"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exception_type",
+          "rule",
+          "entity",
+          "count"
+        ],
+        "title": "ExceptionCount"
+      },
+      "FacetOption": {
+        "properties": {
+          "value": {
+            "type": "string",
+            "title": "Value"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value",
+          "label",
+          "count"
+        ],
+        "title": "FacetOption"
+      },
+      "GoalCreate": {
+        "properties": {
+          "goal_type": {
+            "$ref": "#/components/schemas/GoalType"
+          },
+          "goal_name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Goal Name"
+          },
+          "target_amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)"
+              }
+            ],
+            "title": "Target Amount",
+            "examples": [
+              5000000
+            ]
+          },
+          "current_funded_amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)"
+              }
+            ],
+            "title": "Current Funded Amount",
+            "default": "0",
+            "examples": [
+              5000000
+            ]
+          },
+          "target_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Target Date"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/Band",
+            "default": "MEDIUM"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "goal_type",
+          "goal_name",
+          "target_amount",
+          "target_date"
+        ],
+        "title": "GoalCreate"
+      },
+      "GoalFlag": {
+        "type": "string",
+        "enum": [
+          "OVERDUE",
+          "OVERFUNDED",
+          "NAME_TYPE_MISMATCH",
+          "HIGH_PRIORITY_UNDERFUNDED"
+        ],
+        "title": "GoalFlag"
+      },
+      "GoalList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/GoalOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/GoalSummary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "summary"
+        ],
+        "title": "GoalList"
+      },
+      "GoalOut": {
+        "properties": {
+          "goal_id": {
+            "type": "string",
+            "title": "Goal Id"
+          },
+          "customer_id": {
+            "type": "string",
+            "title": "Customer Id"
+          },
+          "goal_type": {
+            "$ref": "#/components/schemas/GoalType"
+          },
+          "goal_name": {
+            "type": "string",
+            "title": "Goal Name"
+          },
+          "target_amount": {
+            "type": "number",
+            "title": "Target Amount"
+          },
+          "current_funded_amount": {
+            "type": "number",
+            "title": "Current Funded Amount"
+          },
+          "remaining_amount": {
+            "type": "number",
+            "title": "Remaining Amount"
+          },
+          "funded_pct": {
+            "type": "number",
+            "title": "Funded Pct",
+            "description": "current_funded_amount / target_amount x 100"
+          },
+          "target_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Target Date"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/Band"
+          },
+          "flags": {
+            "items": {
+              "$ref": "#/components/schemas/GoalFlag"
+            },
+            "type": "array",
+            "title": "Flags"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "goal_id",
+          "customer_id",
+          "goal_type",
+          "goal_name",
+          "target_amount",
+          "current_funded_amount",
+          "remaining_amount",
+          "funded_pct",
+          "target_date",
+          "priority",
+          "flags",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "GoalOut"
+      },
+      "GoalSummary": {
+        "properties": {
+          "goals": {
+            "type": "integer",
+            "title": "Goals"
+          },
+          "total_target": {
+            "type": "number",
+            "title": "Total Target"
+          },
+          "total_funded": {
+            "type": "number",
+            "title": "Total Funded"
+          },
+          "funded_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Funded Pct"
+          },
+          "flagged": {
+            "type": "integer",
+            "title": "Flagged"
+          }
+        },
+        "type": "object",
+        "required": [
+          "goals",
+          "total_target",
+          "total_funded",
+          "funded_pct",
+          "flagged"
+        ],
+        "title": "GoalSummary"
+      },
+      "GoalType": {
+        "type": "string",
+        "enum": [
+          "RETIREMENT",
+          "EDUCATION",
+          "HOME_PURCHASE",
+          "EMERGENCY_FUND",
+          "WEALTH_CREATION",
+          "TRAVEL"
+        ],
+        "title": "GoalType"
+      },
+      "GoalUpdate": {
+        "properties": {
+          "goal_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GoalType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "goal_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goal Name"
+          },
+          "target_amount": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "exclusiveMinimum": 0.0
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)"
+                  }
+                ],
+                "examples": [
+                  5000000
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Amount"
+          },
+          "current_funded_amount": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0.0
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)"
+                  }
+                ],
+                "examples": [
+                  5000000
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Funded Amount"
+          },
+          "target_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Date"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Band"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "GoalUpdate",
+        "description": "Partial update. Cross-field rules are checked against the merged result."
+      },
+      "Headline": {
+        "properties": {
+          "customers": {
+            "type": "integer",
+            "title": "Customers"
+          },
+          "accounts": {
+            "type": "integer",
+            "title": "Accounts"
+          },
+          "active_accounts": {
+            "type": "integer",
+            "title": "Active Accounts"
+          },
+          "customers_with_holdings": {
+            "type": "integer",
+            "title": "Customers With Holdings"
+          },
+          "aum": {
+            "type": "number",
+            "title": "Aum"
+          },
+          "transactions": {
+            "type": "integer",
+            "title": "Transactions"
+          },
+          "goals": {
+            "type": "integer",
+            "title": "Goals"
+          },
+          "snapshot_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Date"
+          },
+          "price_as_of": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price As Of"
+          }
+        },
+        "type": "object",
+        "required": [
+          "customers",
+          "accounts",
+          "active_accounts",
+          "customers_with_holdings",
+          "aum",
+          "transactions",
+          "goals",
+          "snapshot_date",
+          "price_as_of"
+        ],
+        "title": "Headline"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "healthy",
+              "unhealthy"
+            ],
+            "title": "Status"
+          },
+          "database": {
+            "type": "string",
+            "enum": [
+              "healthy",
+              "unavailable"
+            ],
+            "title": "Database"
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "database",
+          "environment",
+          "version"
+        ],
+        "title": "HealthResponse"
+      },
+      "ImportBatchOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ImportKind"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ImportStatus"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "file_sha256": {
+            "type": "string",
+            "title": "File Sha256"
+          },
+          "file_bytes": {
+            "type": "integer",
+            "title": "File Bytes"
+          },
+          "uploaded_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uploaded By",
+            "description": "E-mail of the uploading user; null for seed"
+          },
+          "total_rows": {
+            "type": "integer",
+            "title": "Total Rows"
+          },
+          "inserted_rows": {
+            "type": "integer",
+            "title": "Inserted Rows"
+          },
+          "duplicate_rows": {
+            "type": "integer",
+            "title": "Duplicate Rows",
+            "description": "Already present with identical values (skipped)"
+          },
+          "rejected_rows": {
+            "type": "integer",
+            "title": "Rejected Rows"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "source",
+          "status",
+          "filename",
+          "file_sha256",
+          "file_bytes",
+          "uploaded_by",
+          "total_rows",
+          "inserted_rows",
+          "duplicate_rows",
+          "rejected_rows",
+          "error_message",
+          "started_at",
+          "completed_at"
+        ],
+        "title": "ImportBatchOut"
+      },
+      "ImportBatchPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ImportBatchOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "pagination"
+        ],
+        "title": "ImportBatchPage"
+      },
+      "ImportErrorPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ImportRowErrorOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "pagination"
+        ],
+        "title": "ImportErrorPage"
+      },
+      "ImportKind": {
+        "type": "string",
+        "enum": [
+          "CUSTOMERS",
+          "ACCOUNTS",
+          "INSTRUMENTS",
+          "RISK_PROFILES",
+          "GOALS",
+          "HOLDINGS",
+          "TRANSACTIONS"
+        ],
+        "title": "ImportKind"
+      },
+      "ImportReport": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ImportKind"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ImportStatus"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "file_sha256": {
+            "type": "string",
+            "title": "File Sha256"
+          },
+          "file_bytes": {
+            "type": "integer",
+            "title": "File Bytes"
+          },
+          "uploaded_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uploaded By",
+            "description": "E-mail of the uploading user; null for seed"
+          },
+          "total_rows": {
+            "type": "integer",
+            "title": "Total Rows"
+          },
+          "inserted_rows": {
+            "type": "integer",
+            "title": "Inserted Rows"
+          },
+          "duplicate_rows": {
+            "type": "integer",
+            "title": "Duplicate Rows",
+            "description": "Already present with identical values (skipped)"
+          },
+          "rejected_rows": {
+            "type": "integer",
+            "title": "Rejected Rows"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ImportRowErrorOut"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "errors_total": {
+            "type": "integer",
+            "title": "Errors Total"
+          },
+          "errors_truncated": {
+            "type": "boolean",
+            "title": "Errors Truncated"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "source",
+          "status",
+          "filename",
+          "file_sha256",
+          "file_bytes",
+          "uploaded_by",
+          "total_rows",
+          "inserted_rows",
+          "duplicate_rows",
+          "rejected_rows",
+          "error_message",
+          "started_at",
+          "completed_at",
+          "errors",
+          "errors_total",
+          "errors_truncated"
+        ],
+        "title": "ImportReport",
+        "description": "Upload response: the batch plus the first page of row-level rejections."
+      },
+      "ImportRowErrorOut": {
+        "properties": {
+          "line_number": {
+            "type": "integer",
+            "title": "Line Number",
+            "description": "Physical line in the uploaded file; header = 1"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity"
+          },
+          "error_code": {
+            "type": "string",
+            "title": "Error Code"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "raw_data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Raw Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "line_number",
+          "severity",
+          "error_code",
+          "field",
+          "message",
+          "raw_data"
+        ],
+        "title": "ImportRowErrorOut"
+      },
+      "ImportStatus": {
+        "type": "string",
+        "enum": [
+          "PROCESSING",
+          "COMPLETED",
+          "FAILED"
+        ],
+        "title": "ImportStatus"
+      },
+      "InstrumentHolders": {
+        "properties": {
+          "instrument_id": {
+            "type": "string",
+            "title": "Instrument Id"
+          },
+          "symbol": {
+            "type": "string",
+            "title": "Symbol"
+          },
+          "instrument_name": {
+            "type": "string",
+            "title": "Instrument Name"
+          },
+          "asset_class": {
+            "$ref": "#/components/schemas/AssetClass"
+          },
+          "holders": {
+            "type": "integer",
+            "title": "Holders"
+          }
+        },
+        "type": "object",
+        "required": [
+          "instrument_id",
+          "symbol",
+          "instrument_name",
+          "asset_class",
+          "holders"
+        ],
+        "title": "InstrumentHolders"
+      },
+      "KycStatus": {
+        "type": "string",
+        "enum": [
+          "VERIFIED",
+          "PENDING",
+          "REVIEW"
+        ],
+        "title": "KycStatus"
+      },
+      "LoginRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "maxLength": 254,
+            "minLength": 3,
+            "title": "Email",
+            "examples": [
+              "viewer@finpilot.local"
+            ]
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "format": "password",
+            "title": "Password",
+            "writeOnly": true,
+            "examples": [
+              "Viewer@12345"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginRequest"
+      },
+      "MonthlyFlow": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "format": "date",
+            "title": "Month"
+          },
+          "buy_amount": {
+            "type": "number",
+            "title": "Buy Amount"
+          },
+          "sell_amount": {
+            "type": "number",
+            "title": "Sell Amount"
+          },
+          "net_invested": {
+            "type": "number",
+            "title": "Net Invested"
+          },
+          "trades": {
+            "type": "integer",
+            "title": "Trades"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "buy_amount",
+          "sell_amount",
+          "net_invested",
+          "trades"
+        ],
+        "title": "MonthlyFlow"
+      },
+      "Overview": {
+        "properties": {
+          "headline": {
+            "$ref": "#/components/schemas/Headline"
+          },
+          "top_customers": {
+            "items": {
+              "$ref": "#/components/schemas/TopCustomer"
+            },
+            "type": "array",
+            "title": "Top Customers"
+          },
+          "allocation": {
+            "items": {
+              "$ref": "#/components/schemas/AllocationRow"
+            },
+            "type": "array",
+            "title": "Allocation"
+          },
+          "monthly_net_flows": {
+            "items": {
+              "$ref": "#/components/schemas/MonthlyFlow"
+            },
+            "type": "array",
+            "title": "Monthly Net Flows"
+          },
+          "top_instruments_by_holders": {
+            "items": {
+              "$ref": "#/components/schemas/InstrumentHolders"
+            },
+            "type": "array",
+            "title": "Top Instruments By Holders"
+          },
+          "high_priority_underfunded_goals": {
+            "items": {
+              "$ref": "#/components/schemas/UnderfundedGoal"
+            },
+            "type": "array",
+            "title": "High Priority Underfunded Goals"
+          },
+          "data_quality": {
+            "items": {
+              "$ref": "#/components/schemas/ExceptionCount"
+            },
+            "type": "array",
+            "title": "Data Quality"
+          }
+        },
+        "type": "object",
+        "required": [
+          "headline",
+          "top_customers",
+          "allocation",
+          "monthly_net_flows",
+          "top_instruments_by_holders",
+          "high_priority_underfunded_goals",
+          "data_quality"
+        ],
+        "title": "Overview"
+      },
+      "Pagination": {
+        "properties": {
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "pages": {
+            "type": "integer",
+            "title": "Pages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "page",
+          "page_size",
+          "total",
+          "pages"
+        ],
+        "title": "Pagination"
+      },
+      "Portfolio": {
+        "properties": {
+          "customer_id": {
+            "type": "string",
+            "title": "Customer Id"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency",
+            "default": "INR"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/DataFreshness"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/Valuation"
+          },
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/AccountValuation"
+            },
+            "type": "array",
+            "title": "Accounts"
+          },
+          "allocation": {
+            "items": {
+              "$ref": "#/components/schemas/AllocationSlice"
+            },
+            "type": "array",
+            "title": "Allocation"
+          },
+          "positions": {
+            "items": {
+              "$ref": "#/components/schemas/Position"
+            },
+            "type": "array",
+            "title": "Positions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "customer_id",
+          "freshness",
+          "totals",
+          "accounts",
+          "allocation",
+          "positions"
+        ],
+        "title": "Portfolio"
+      },
+      "Position": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "instrument_id": {
+            "type": "string",
+            "title": "Instrument Id"
+          },
+          "symbol": {
+            "type": "string",
+            "title": "Symbol"
+          },
+          "instrument_name": {
+            "type": "string",
+            "title": "Instrument Name"
+          },
+          "asset_class": {
+            "$ref": "#/components/schemas/AssetClass"
+          },
+          "sector": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector"
+          },
+          "risk_band": {
+            "type": "string",
+            "title": "Risk Band"
+          },
+          "quantity": {
+            "type": "number",
+            "title": "Quantity"
+          },
+          "avg_cost": {
+            "type": "number",
+            "title": "Avg Cost"
+          },
+          "last_price": {
+            "type": "number",
+            "title": "Last Price"
+          },
+          "price_as_of": {
+            "type": "string",
+            "format": "date",
+            "title": "Price As Of"
+          },
+          "market_value": {
+            "type": "number",
+            "title": "Market Value"
+          },
+          "cost_basis": {
+            "type": "number",
+            "title": "Cost Basis"
+          },
+          "unrealized_pnl": {
+            "type": "number",
+            "title": "Unrealized Pnl"
+          },
+          "unrealized_pnl_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unrealized Pnl Pct"
+          },
+          "weight_pct": {
+            "type": "number",
+            "title": "Weight Pct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "instrument_id",
+          "symbol",
+          "instrument_name",
+          "asset_class",
+          "sector",
+          "risk_band",
+          "quantity",
+          "avg_cost",
+          "last_price",
+          "price_as_of",
+          "market_value",
+          "cost_basis",
+          "unrealized_pnl",
+          "unrealized_pnl_pct",
+          "weight_pct"
+        ],
+        "title": "Position"
+      },
+      "RiskLevel": {
+        "type": "string",
+        "enum": [
+          "Conservative",
+          "Moderate",
+          "Growth",
+          "Aggressive"
+        ],
+        "title": "RiskLevel"
+      },
+      "RiskProfileOut": {
+        "properties": {
+          "risk_score": {
+            "type": "integer",
+            "title": "Risk Score"
+          },
+          "risk_level": {
+            "$ref": "#/components/schemas/RiskLevel"
+          },
+          "assessed_at": {
+            "type": "string",
+            "format": "date",
+            "title": "Assessed At"
+          },
+          "horizon_years": {
+            "type": "integer",
+            "title": "Horizon Years"
+          },
+          "liquidity_need": {
+            "type": "string",
+            "title": "Liquidity Need"
+          }
+        },
+        "type": "object",
+        "required": [
+          "risk_score",
+          "risk_level",
+          "assessed_at",
+          "horizon_years",
+          "liquidity_need"
+        ],
+        "title": "RiskProfileOut"
+      },
+      "Role": {
+        "type": "string",
+        "enum": [
+          "VIEWER",
+          "ADMIN"
+        ],
+        "title": "Role"
+      },
+      "Segment": {
+        "type": "string",
+        "enum": [
+          "Mass",
+          "Affluent",
+          "HNI"
+        ],
+        "title": "Segment"
+      },
+      "SessionOut": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserOut"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user",
+          "expires_at"
+        ],
+        "title": "SessionOut"
+      },
+      "TopCustomer": {
+        "properties": {
+          "customer_id": {
+            "type": "string",
+            "title": "Customer Id"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "segment": {
+            "type": "string",
+            "title": "Segment"
+          },
+          "aum": {
+            "type": "number",
+            "title": "Aum"
+          }
+        },
+        "type": "object",
+        "required": [
+          "customer_id",
+          "full_name",
+          "segment",
+          "aum"
+        ],
+        "title": "TopCustomer"
+      },
+      "TransactionFacets": {
+        "properties": {
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/FacetOption"
+            },
+            "type": "array",
+            "title": "Accounts"
+          },
+          "instruments": {
+            "items": {
+              "$ref": "#/components/schemas/FacetOption"
+            },
+            "type": "array",
+            "title": "Instruments"
+          },
+          "transaction_types": {
+            "items": {
+              "$ref": "#/components/schemas/FacetOption"
+            },
+            "type": "array",
+            "title": "Transaction Types"
+          },
+          "statuses": {
+            "items": {
+              "$ref": "#/components/schemas/FacetOption"
+            },
+            "type": "array",
+            "title": "Statuses"
+          },
+          "min_trade_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Trade Date"
+          },
+          "max_trade_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Trade Date"
+          }
+        },
+        "type": "object",
+        "required": [
+          "accounts",
+          "instruments",
+          "transaction_types",
+          "statuses",
+          "min_trade_date",
+          "max_trade_date"
+        ],
+        "title": "TransactionFacets",
+        "description": "Filter options limited to values that actually occur for this customer."
+      },
+      "TransactionOut": {
+        "properties": {
+          "transaction_id": {
+            "type": "string",
+            "title": "Transaction Id"
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "instrument_id": {
+            "type": "string",
+            "title": "Instrument Id"
+          },
+          "symbol": {
+            "type": "string",
+            "title": "Symbol"
+          },
+          "instrument_name": {
+            "type": "string",
+            "title": "Instrument Name"
+          },
+          "asset_class": {
+            "$ref": "#/components/schemas/AssetClass"
+          },
+          "transaction_type": {
+            "$ref": "#/components/schemas/TransactionType"
+          },
+          "trade_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Trade Date"
+          },
+          "quantity": {
+            "type": "number",
+            "title": "Quantity"
+          },
+          "price": {
+            "type": "number",
+            "title": "Price"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TransactionStatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "transaction_id",
+          "account_id",
+          "instrument_id",
+          "symbol",
+          "instrument_name",
+          "asset_class",
+          "transaction_type",
+          "trade_date",
+          "quantity",
+          "price",
+          "amount",
+          "status"
+        ],
+        "title": "TransactionOut"
+      },
+      "TransactionPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "pagination"
+        ],
+        "title": "TransactionPage"
+      },
+      "TransactionStatus": {
+        "type": "string",
+        "enum": [
+          "SETTLED",
+          "PENDING",
+          "REVERSED"
+        ],
+        "title": "TransactionStatus"
+      },
+      "TransactionType": {
+        "type": "string",
+        "enum": [
+          "BUY",
+          "SELL",
+          "DIVIDEND",
+          "FEE"
+        ],
+        "title": "TransactionType"
+      },
+      "UnderfundedGoal": {
+        "properties": {
+          "goal_id": {
+            "type": "string",
+            "title": "Goal Id"
+          },
+          "customer_id": {
+            "type": "string",
+            "title": "Customer Id"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "goal_type": {
+            "type": "string",
+            "title": "Goal Type"
+          },
+          "target_amount": {
+            "type": "number",
+            "title": "Target Amount"
+          },
+          "current_funded_amount": {
+            "type": "number",
+            "title": "Current Funded Amount"
+          },
+          "funded_pct": {
+            "type": "number",
+            "title": "Funded Pct"
+          },
+          "target_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Target Date"
+          }
+        },
+        "type": "object",
+        "required": [
+          "goal_id",
+          "customer_id",
+          "full_name",
+          "goal_type",
+          "target_amount",
+          "current_funded_amount",
+          "funded_pct",
+          "target_date"
+        ],
+        "title": "UnderfundedGoal"
+      },
+      "UserOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "full_name",
+          "role"
+        ],
+        "title": "UserOut"
+      },
+      "Valuation": {
+        "properties": {
+          "market_value": {
+            "type": "number",
+            "title": "Market Value"
+          },
+          "cost_basis": {
+            "type": "number",
+            "title": "Cost Basis"
+          },
+          "unrealized_pnl": {
+            "type": "number",
+            "title": "Unrealized Pnl"
+          },
+          "unrealized_pnl_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unrealized Pnl Pct",
+            "description": "unrealized_pnl / cost_basis x 100; null when cost basis is zero"
+          },
+          "positions": {
+            "type": "integer",
+            "title": "Positions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "market_value",
+          "cost_basis",
+          "unrealized_pnl",
+          "unrealized_pnl_pct",
+          "positions"
+        ],
+        "title": "Valuation"
+      }
+    }
+  }
+}

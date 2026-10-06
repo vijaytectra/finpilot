@@ -13,7 +13,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.core.config import get_settings
 from app.core.database import engine
-from app.core.logging import configure_logging, get_logger
+from app.core.logging import configure_logging, get_logger, use_json_logs
 from app.core.security import hash_password
 from app.importers.batches import ImportOutcome
 from app.importers.reference import REFERENCE_SPECS, import_reference
@@ -79,7 +79,7 @@ async def _main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
 
     settings = get_settings()
-    configure_logging(settings.log_level, json=settings.environment != "local")
+    configure_logging(settings.log_level, json=use_json_logs(settings.environment))
     try:
         if args.command == "seed":
             if not args.no_users:

@@ -26,6 +26,9 @@ coverage/
 playwright-report/
 test-results/
 
+# Local agent tooling (parallel worktrees)
+.claude/
+
 # OS / editor
 .DS_Store
 Thumbs.db

@@ -18,15 +18,19 @@ interface StatCardProps {
 export function StatCard({ label, value, hint, icon: Icon, title, className }: StatCardProps) {
   return (
     <Card className={cn("gap-0 py-4", className)}>
-      <CardContent className="space-y-1.5 px-4">
+      <CardContent className="space-y-2 px-4">
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</p>
-          {Icon ? <Icon className="size-4 text-muted-foreground" aria-hidden /> : null}
+          {Icon ? (
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-accent text-accent-foreground">
+              <Icon className="size-4" aria-hidden />
+            </span>
+          ) : null}
         </div>
-        <p className="tabular truncate text-xl font-semibold tracking-tight sm:text-2xl" title={title}>
+        <p className="tabular truncate text-2xl leading-tight font-semibold tracking-tight xl:text-[28px]" title={title}>
           {value}
         </p>
-        {hint ? <div className="text-xs text-muted-foreground">{hint}</div> : null}
+        {hint ? <div className="truncate text-xs text-muted-foreground">{hint}</div> : null}
       </CardContent>
     </Card>
   );

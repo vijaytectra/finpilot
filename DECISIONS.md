@@ -37,7 +37,7 @@ design; this file is the short list a reviewer can check claims against.
 
 | # | Limitation | Impact | Fix when needed |
 |---|---|---|---|
-| L1 | Login rate limiter is in-process memory | Counters are per uvicorn worker (compose runs 2) and per replica, and reset on restart: the effective limit is 5 x workers x replicas attempts/min per client IP + e-mail | Redis/gateway limiter behind the same interface (`SlidingWindowLimiter`) |
+| L1 | Login rate limits are in-process memory | Both budgets (5/min per client IP + e-mail, 10/min per e-mail) are counted per uvicorn worker (compose runs 2) and per replica and reset on restart, so the effective limits are N x workers x replicas. Behind the web proxy the API sees the web container as the client (see R2), so the IP budget effectively acts per account | Redis/gateway limiter behind the same interface (`SlidingWindowLimiter`); an overwriting edge proxy for real client IPs |
 | L3 | Offset pagination | Deep pages cost O(offset) (measured 293 ms at page 2,000 for a 50k-row customer on a 3M-row table) | Keyset cursor `(trade_date, transaction_id)`, measured 0.6 ms |
 | L4 | No optimistic locking on goals | `SELECT ... FOR UPDATE` serialises concurrent writes, but a user can save over a change made after they opened the form (last write wins) | `version` column or `If-Match` on `updated_at` -> 409 |
 | L5 | Customer list values every customer's portfolio before paging (`v_customer_aum` join) | Negligible on supplied data (3 ms); ~0.5-1.1 s at 100k customers | Page first, value the page; materialized AUM for AUM sort |
@@ -58,7 +58,7 @@ references stay meaningful.
 | # | Was | Fix | Evidence |
 |---|---|---|---|
 | R1 (was L12) | The development `JWT_SECRET` default passed the 32-character check, so a production deployment that forgot to set it would sign tokens with a public value | `Settings._production_guards` (`app/core/config.py`): with `ENVIRONMENT=production` start-up fails on a known/`local-dev` secret or `COOKIE_SECURE=false`. `.env.example` deliberately ships a labelled local-only secret so `cp .env.example .env && docker compose up` works | `tests/unit/test_config.py` |
-| R2 (was L2) | Behind the Next.js proxy the API saw the web container as the client, so the login limit degraded to "per e-mail" and logged IPs were the proxy's | The entrypoint runs uvicorn with `--proxy-headers --forwarded-allow-ips "${FORWARDED_ALLOW_IPS}"`; compose sets `FORWARDED_ALLOW_IPS: "*"` for the api, which is reachable only on the private compose network and the 127.0.0.1 host binding, so `request.client.host` is the real client from `X-Forwarded-For` | `apps/api/docker-entrypoint.sh`, `docker-compose.yml` |
+| R2 (was L2; found in E2E, fixed in PR #9) | First attempt (`FORWARDED_ALLOW_IPS="*"` so the limiter would see the real client) was unsafe: the full-stack E2E test showed the Next.js rewrite forwards a client-supplied `X-Forwarded-For` verbatim, so a caller could forge a new IP per attempt and bypass the (IP, e-mail) limit entirely (12 forged-IP attempts, none limited) | `FORWARDED_ALLOW_IPS` now defaults to `127.0.0.1`: forwarded headers from the web container are not trusted (set it only to an edge proxy that overwrites the header). A second, unspoofable budget of 10/min per e-mail is charged on every attempt in addition to 5/min per (IP, e-mail). Trade-off: a flood can lock one account's sign-in for up to a minute. After the fix the same test gets 401 x 5, then 429 | `tests/unit/test_login_rate_limit.py`, `docker-compose.yml`, `.env.example` |
 | R3 (was L11) | A transactions row with more fields than the header had the surplus values dropped and could load | Rows whose field count differs from the header are rejected as `MALFORMED_ROW` inside the import transaction and excluded from the merge | regression test in `tests/integration/test_import_pipeline.py` (PR #7) |
 | R4 | Console (non-JSON) logs whenever `ENVIRONMENT=local`, including inside containers | `use_json_logs()` (`app/core/logging.py`): JSON whenever the environment is not `local` or stdout is not a TTY, so every container emits one JSON object per line | `app/main.py` |
 
@@ -149,7 +149,8 @@ Format: context -> decision -> consequences. Status of all: **Accepted**.
   for direct development use.
 * **Consequences:** + First-party cookie, no preflights, API not exposed to the browser network;
   one public origin to put TLS/WAF in front of. - The web tier is in the request path; client IP
-  is forwarded via `X-Forwarded-For` and trusted by uvicorn `--proxy-headers` (R2).
+  is not trusted from the web container (it forwards client `X-Forwarded-For` verbatim), so the
+  API sees the proxy as the client until an overwriting edge proxy is added (R2).
 
 ### ADR-09 Plain views, not materialized views
 * **Context:** Portfolio, AUM, flows and exception logic should be defined once and reused.

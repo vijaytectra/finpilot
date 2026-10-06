@@ -84,7 +84,7 @@ function OverviewSkeleton() {
               <Skeleton className="h-5 w-40" />
               <Skeleton className="h-4 w-64" />
             </CardHeader>
-            <CardContent className="grid items-center gap-6 md:grid-cols-[200px_1fr]">
+            <CardContent className="grid items-center gap-6 md:grid-cols-[200px_1fr] lg:grid-cols-1 xl:grid-cols-[200px_1fr]">
               <Skeleton className="mx-auto size-[180px] rounded-full" />
               <div className="space-y-3">
                 {Array.from({ length: 6 }, (_, i) => (

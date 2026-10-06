@@ -52,7 +52,7 @@ export function AllocationChart({ data, total, totalLabel = "Total", className }
   const showPositions = data.some((d) => d.positions !== undefined);
 
   return (
-    <div className={cn("grid items-center gap-6 md:grid-cols-[200px_1fr]", className)}>
+    <div className={cn("grid items-center gap-6 md:grid-cols-[200px_1fr] lg:grid-cols-1 xl:grid-cols-[200px_1fr]", className)}>
       <div className="relative mx-auto size-[200px]" role="img" aria-label={`Asset allocation: ${summary}`}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>

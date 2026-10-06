@@ -20,7 +20,7 @@ export function TopInstrumentsCard({ instruments }: { instruments: InstrumentHol
             <TableHeader>
               <TableRow>
                 <TableHead>Instrument</TableHead>
-                <TableHead className="hidden sm:table-cell">Class</TableHead>
+                <TableHead className="hidden sm:table-cell lg:hidden xl:table-cell">Class</TableHead>
                 <TableHead className="text-right">Holders</TableHead>
               </TableRow>
             </TableHeader>
@@ -31,7 +31,7 @@ export function TopInstrumentsCard({ instruments }: { instruments: InstrumentHol
                     <span className="block truncate font-medium">{i.symbol}</span>
                     <span className="block truncate text-xs text-muted-foreground">{i.instrument_name}</span>
                   </TableCell>
-                  <TableCell className="hidden sm:table-cell">
+                  <TableCell className="hidden sm:table-cell lg:hidden xl:table-cell">
                     <span className="flex items-center gap-1.5 text-xs">
                       <span className="size-2 rounded-sm" style={{ background: ASSET_CLASS_COLOR[i.asset_class] }} aria-hidden />
                       {assetClassLabel(i.asset_class)}

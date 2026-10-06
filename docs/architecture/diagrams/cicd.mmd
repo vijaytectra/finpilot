@@ -1,8 +1,8 @@
-flowchart LR
+flowchart TB
     dev["Developer<br/>feature branch"] -- "git push / PR" --> gh["GitHub"]
 
     subgraph ci["ci.yml - on PR and push to main"]
-        direction TB
+        direction LR
         a1["uv sync --locked"] --> a2["ruff check + format --check"] --> a4["mypy --strict"]
         a4 --> a5["alembic upgrade head<br/>(empty PostgreSQL 16 service)"] --> a6["alembic check<br/>(models = migrations)"]
         a6 --> a7["alembic downgrade base<br/>&& upgrade head"] --> a8["pytest + coverage<br/>(real PostgreSQL)"]
@@ -10,7 +10,7 @@ flowchart LR
     end
 
     subgraph dk["docker.yml - on PR and push to main"]
-        direction TB
+        direction LR
         d1["build api image<br/>(buildx, GHA cache)"] --> d2["build web image<br/>(when apps/web exists)"] --> d3["Trivy scan of api image<br/>CRITICAL/HIGH, report only<br/>(action pinned to commit SHA)"]
         d3 --> d4["compose smoke test: db + api<br/>throw-away secrets, wait healthy,<br/>/health database=healthy, login 200"] --> d5["compose down -v"]
     end

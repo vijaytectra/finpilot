@@ -1,0 +1,23 @@
+flowchart TB
+    browser["Browser<br/>http://localhost:3000"]
+
+    subgraph hostm["Developer / demo host - docker compose project 'finpilot'"]
+        direction TB
+        proxy["proxy (optional 'tls' profile)<br/>reverse proxy, self-signed TLS :443<br/>-> web:3000"]
+        subgraph net["compose network"]
+            direction LR
+            web["web container<br/>Next.js standalone (node)<br/>:3000 published<br/>API_INTERNAL_URL=http://api:8000"]
+            api["api container<br/>entrypoint: alembic upgrade head<br/>-> python -m app.cli seed (idempotent)<br/>-> uvicorn app.main:app :8000<br/>HEALTHCHECK GET /api/v1/health"]
+            db[("db container<br/>postgres:16-alpine<br/>healthcheck pg_isready<br/>volume pgdata")]
+        end
+        envf[/".env (git-ignored)<br/>POSTGRES_PASSWORD, JWT_SECRET,<br/>DATABASE_URL, COOKIE_SECURE, CORS_ORIGINS"/]
+    end
+
+    browser --> web
+    browser -. "https (tls profile)" .-> proxy -.-> web
+    web -- "/api/v1/* rewrite (server side)" --> api
+    api -- "asyncpg pool 10 + 10 overflow,<br/>statement_timeout 15 s" --> db
+    envf -. "env_file / interpolation" .-> api
+    envf -. "env_file" .-> db
+    dev["psql / DB tools"] -- "127.0.0.1:5433 only" --> db
+    swagger["Swagger UI"] -- "localhost:8000/docs" --> api

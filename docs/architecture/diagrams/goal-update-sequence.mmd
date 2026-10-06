@@ -1,0 +1,30 @@
+sequenceDiagram
+    autonumber
+    actor U as Wealth user
+    participant F as Goal edit form<br/>(React Hook Form + Zod)
+    participant R as Router goals.py
+    participant G as GoalService
+    participant DB as PostgreSQL (goals)
+
+    U->>F: edit current_funded_amount
+    F->>F: client validation (Zod): positive numbers,<br/>funded <= target, future date if changed
+    F->>R: PATCH /api/v1/goals/G00007 {current_funded_amount}
+    R->>R: GoalUpdate schema: extra fields forbidden, explicit null rejected,<br/>at least one field, amounts <= 14 digits / 2 dp, path ^G\d{5,}$
+    alt invalid body
+        R-->>F: 422 VALIDATION_ERROR details[{field, message}]
+    end
+    R->>G: update(goal_id, payload, user.id)
+    G->>DB: BEGIN, then SELECT ... FROM goals WHERE goal_id = :id FOR UPDATE
+    alt not found
+        G-->>F: 404 GOAL_NOT_FOUND
+    end
+    G->>G: merge changes over stored row:<br/>funded <= target (cross-field, on merged state),<br/>target_date > today only if target_date changed
+    alt rule violated
+        G->>DB: no commit: request session closes -> ROLLBACK, lock released
+        G-->>F: 422 VALIDATION_ERROR (field-level)
+    end
+    G->>DB: UPDATE goals SET <changed fields> WHERE goal_id = :id
+    G->>DB: COMMIT (CHECK constraints are the last line of defence)
+    G->>G: log goal_updated {goal_id, fields, by=user_id, request_id}
+    G-->>F: 200 GoalOut {funded_pct, remaining_amount, flags[]}
+    F->>F: invalidate ["goals", customer] query -> list re-fetches

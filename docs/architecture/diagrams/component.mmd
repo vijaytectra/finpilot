@@ -1,0 +1,43 @@
+flowchart TB
+    subgraph web["apps/web - Next.js 15 App Router (agreed design)"]
+        direction TB
+        mw["middleware.ts<br/>route guard: no session cookie -> /login"]
+        pages["app/ routes<br/>/login, / (overview), /customers,<br/>/customers/[id] tabs, /admin/import"]
+        feats["features/*<br/>auth, customers, portfolio, transactions,<br/>goals, imports, overview"]
+        ui["components/ui (shadcn/ui), charts (Recharts)"]
+        rq["TanStack Query (server state)<br/>React Hook Form + Zod (forms)"]
+        client["lib/api client<br/>fetch('/api/v1/...'), credentials: same-origin,<br/>error envelope -> typed ApiError"]
+        mw --> pages --> feats --> ui
+        feats --> rq --> client
+    end
+
+    client -- "rewrite /api/v1/* -> API_INTERNAL_URL" --> routers
+
+    subgraph api["apps/api - FastAPI (Python 3.12)"]
+        direction TB
+        mid["RequestContextMiddleware (request_id, access log)<br/>CORSMiddleware, exception handlers -> error envelope"]
+        routers["api/v1 routers<br/>auth, customers, portfolio, transactions,<br/>goals, reports, admin/imports, health"]
+        deps["api/deps.py<br/>SessionDep, CurrentUser (cookie JWT, user re-read),<br/>require_role(ADMIN), bounded pagination"]
+        schemas["schemas/* (Pydantic v2)<br/>request contracts, MoneyOut rounding"]
+        services["services/*<br/>business rules: goal validation and flags,<br/>portfolio shaping, auth + rate limit, import report"]
+        repos["repositories/*<br/>the only SQL: text() with bind params,<br/>allow-listed ORDER BY, escaped LIKE"]
+        importers["importers/*<br/>csv_source -> rows (contracts) -> reference loader,<br/>transactions: COPY -> stage -> SQL rules -> merge"]
+        core["core/*<br/>config (pydantic-settings), database (pool),<br/>security (Argon2id, JWT), logging (structlog)"]
+        mid --> routers
+        routers --> deps
+        routers --> schemas
+        routers --> services --> repos
+        services --> importers
+        deps --> core
+        repos --> core
+        importers --> core
+    end
+
+    subgraph pg["PostgreSQL 16"]
+        tables[("tables<br/>customers, accounts, instruments,<br/>holdings_snapshot, transactions, goals,<br/>risk_profiles, users, import_batches,<br/>import_errors, staging_transactions")]
+        views[("views<br/>v_position_valuation, v_customer_aum,<br/>v_monthly_net_flows, v_latest_risk_profile,<br/>v_data_quality_exceptions")]
+    end
+
+    repos --> views
+    repos --> tables
+    importers --> tables

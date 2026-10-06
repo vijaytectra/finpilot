@@ -1,0 +1,28 @@
+flowchart LR
+    dev["Developer<br/>feature branch"] -- "git push / PR" --> gh["GitHub"]
+
+    subgraph ci["ci.yml (on push to main, on PR) - concurrency cancels stale runs"]
+        direction TB
+        subgraph apijob["job: api (ubuntu, service postgres:16-alpine) - implemented"]
+            direction TB
+            a1["uv sync --locked"] --> a2["ruff check"] --> a3["ruff format --check"] --> a4["mypy --strict"]
+            a4 --> a5["alembic upgrade head<br/>(empty DB)"] --> a6["alembic check<br/>(models = migrations)"]
+            a6 --> a7["alembic downgrade base<br/>&& upgrade head"] --> a8["pytest + coverage<br/>(real PostgreSQL)"]
+        end
+        subgraph webjob["job: web (Node 22) - agreed design"]
+            direction TB
+            w1["npm ci"] --> w2["lint"] --> w3["typecheck (tsc strict)"] --> w4["unit / component tests"] --> w5["next build"]
+        end
+    end
+
+    subgraph dk["docker.yml - agreed design"]
+        direction TB
+        d1["build api + web images"] --> d2["image / dependency scan"] --> d3["compose up: migrate, seed,<br/>smoke test /api/v1/health"]
+    end
+
+    gh --> ci
+    gh --> dk
+    ci -- "all green = required checks" --> merge["PR merge to main"]
+    dk --> merge
+    merge -. "local deploy: docker compose up --build<br/>(api entrypoint: alembic upgrade head -> seed -> uvicorn)" .-> local["Local host"]
+    merge -. "production mapping: push images to registry,<br/>run migration job, roll out" .-> prod["Production (future)"]

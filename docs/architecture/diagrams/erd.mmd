@@ -1,0 +1,121 @@
+erDiagram
+    customers ||--o{ accounts : "owns"
+    customers ||--o{ goals : "has"
+    customers ||--o{ risk_profiles : "assessed (history)"
+    accounts ||--o{ holdings_snapshot : "holds"
+    instruments ||--o{ holdings_snapshot : "held as"
+    accounts ||--o{ transactions : "books"
+    instruments ||--o{ transactions : "traded"
+    users |o--o{ import_batches : "uploaded_by"
+    import_batches ||--o{ import_errors : "rejects"
+    import_batches |o--o{ transactions : "loaded by"
+    import_batches ||--o{ staging_transactions : "stages (transient)"
+
+    customers {
+        varchar10 customer_id PK "C + 4 digits"
+        varchar120 full_name
+        varchar254 email UK "lower()"
+        varchar20 phone
+        varchar80 city
+        varchar3 state
+        date date_of_birth
+        date onboarded_at "> date_of_birth"
+        varchar10 kyc_status "VERIFIED|PENDING|REVIEW"
+        varchar10 segment "Mass|Affluent|HNI"
+        text search_text "GENERATED, GIN trgm"
+    }
+    accounts {
+        varchar10 account_id PK "A + 5 digits"
+        varchar10 customer_id FK "RESTRICT, indexed"
+        varchar20 account_type "BROKERAGE|MUTUAL_FUND|RETIREMENT"
+        varchar80 provider
+        date opened_at
+        varchar10 status "ACTIVE|DORMANT|CLOSED"
+        char3 base_currency
+    }
+    instruments {
+        varchar10 instrument_id PK "I + 4 digits"
+        varchar20 symbol UK
+        varchar120 instrument_name
+        varchar20 asset_class "EQUITY|ETF|MUTUAL_FUND|BOND|REIT|GSEC"
+        varchar40 sector "only for EQUITY"
+        varchar10 exchange "NSE|BSE|OTC"
+        char3 currency
+        numeric18_4 last_price "> 0"
+        date price_as_of
+        varchar10 risk_band "LOW|MEDIUM|HIGH"
+    }
+    holdings_snapshot {
+        date snapshot_date PK
+        varchar10 account_id PK "FK RESTRICT"
+        varchar10 instrument_id PK "FK RESTRICT, indexed"
+        numeric20_6 quantity "> 0"
+        numeric18_4 avg_cost ">= 0"
+    }
+    transactions {
+        varchar12 transaction_id PK "T + 7 digits"
+        varchar10 account_id FK "ix (account_id, trade_date DESC, id DESC)"
+        varchar10 instrument_id FK "indexed"
+        varchar10 transaction_type "BUY|SELL|DIVIDEND|FEE"
+        date trade_date "indexed"
+        numeric20_6 quantity "shape CHECK by type"
+        numeric18_4 price
+        numeric18_2 amount ">= 0"
+        varchar10 status "SETTLED|PENDING|REVERSED"
+        uuid import_batch_id FK "SET NULL"
+    }
+    goals {
+        varchar12 goal_id PK "G + lpad(nextval(goal_id_seq))"
+        varchar10 customer_id FK "CASCADE, indexed"
+        varchar20 goal_type
+        varchar120 goal_name
+        numeric18_2 target_amount "> 0"
+        numeric18_2 current_funded_amount ">= 0"
+        date target_date
+        varchar10 priority "LOW|MEDIUM|HIGH"
+        timestamptz updated_at
+    }
+    risk_profiles {
+        varchar10 customer_id PK "FK CASCADE"
+        date assessed_at PK
+        smallint risk_score "0..100"
+        varchar20 risk_level
+        smallint horizon_years "0..100"
+        varchar10 liquidity_need
+    }
+    users {
+        int id PK
+        varchar254 email UK "lower()"
+        varchar10 role "VIEWER|ADMIN"
+        varchar255 password_hash "Argon2id"
+        boolean is_active
+        timestamptz last_login_at
+    }
+    import_batches {
+        uuid id PK "gen_random_uuid()"
+        varchar20 kind
+        varchar10 source "SEED|UPLOAD"
+        varchar255 filename
+        char64 file_sha256
+        int uploaded_by FK "SET NULL"
+        varchar12 status "PROCESSING|COMPLETED|FAILED"
+        int total_rows "= inserted + duplicate + rejected when COMPLETED"
+        int inserted_rows
+        int duplicate_rows
+        int rejected_rows
+    }
+    import_errors {
+        int id PK
+        uuid batch_id FK "CASCADE, ix (batch_id, line_number)"
+        int line_number "physical line, header = 1"
+        varchar10 severity "REJECTED|WARNING"
+        varchar40 error_code
+        varchar60 field
+        text message
+        jsonb raw_data "original row"
+    }
+    staging_transactions {
+        uuid batch_id PK "UNLOGGED table"
+        int line_number PK
+        text all_columns "raw text, parsed in SQL"
+    }

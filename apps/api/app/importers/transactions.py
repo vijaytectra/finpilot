@@ -28,6 +28,7 @@ from app.importers.batches import (
     complete_batch,
     fail_batch,
     open_batch,
+    record_issues,
 )
 from app.importers.csv_source import parse_csv
 from app.models.enums import ImportKind
@@ -324,6 +325,23 @@ async def import_transactions(
                 [
                     (batch_id, row.line_number, *(row.values[c] for c in COLUMNS))
                     for row in csv_file.rows
+                ],
+            )
+            # A row with more or fewer fields than the header cannot be trusted column-by-
+            # column (values may be shifted), so it is rejected outright rather than letting
+            # extra values be silently dropped. merge_staged skips any line with a rejection.
+            await record_issues(
+                conn,
+                batch_id,
+                [
+                    RowIssue(
+                        row.line_number,
+                        "MALFORMED_ROW",
+                        "row does not have the same number of fields as the header",
+                        dict(row.values),
+                    )
+                    for row in csv_file.rows
+                    if row.malformed
                 ],
             )
             await merge_staged(conn, outcome, business_date)

@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    name: API · lint, types, migrations, tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: finpilot
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: finpilot
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U finpilot -d finpilot"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      ENVIRONMENT: ci
+      DATABASE_URL: postgresql+asyncpg://finpilot:ci-only-password@localhost:5432/finpilot
+      JWT_SECRET: ci-only-secret-that-is-long-enough-for-hs256-signing
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/api/uv.lock
+
+      - name: Install dependencies (locked)
+        run: uv sync --locked
+
+      - name: Lint
+        run: uv run ruff check app tests alembic
+
+      - name: Format check
+        run: uv run ruff format --check app tests alembic/env.py
+
+      - name: Type check (mypy --strict)
+        run: uv run mypy app tests
+
+      - name: Migrations apply cleanly from an empty database
+        run: uv run alembic upgrade head
+
+      - name: Models and migrations are in sync
+        run: uv run alembic check
+
+      - name: Migrations roll back cleanly
+        run: uv run alembic downgrade base && uv run alembic upgrade head
+
+      - name: Tests
+        run: uv run pytest --cov=app --cov-report=term-missing:skip-covered

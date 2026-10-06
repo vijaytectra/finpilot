@@ -2,12 +2,12 @@
 
 Investment portfolio and goal monitoring for an internal wealth-service team. All data is synthetic.
 
-**Scope of this report.** The API, database, import pipeline, tests, container images, compose
-stack, TLS proxy and both CI workflows are described from the code on `main`. The Next.js web
-app was still being built when this was written, so it is described as the agreed design and
-marked *(design)*. Companion documents: `DECISIONS.md` (assumptions, omissions, limitations,
-13 ADRs), `docs/performance/query-plans.md` (EXPLAIN evidence), `docs/sql/reviewer-queries.sql`
-(SQL tasks with results), `docs/api/openapi.json` (OpenAPI 3.1).
+**Scope of this report.** Everything described here is built and on `main`: API, database, import
+pipeline, Next.js web app, tests, container images, compose stack, TLS proxy and both CI
+workflows. The full stack passed a 30-check end-to-end run through the web origin. Companion
+documents: `DECISIONS.md` (assumptions, omissions, limitations, 13 ADRs),
+`docs/performance/query-plans.md` (EXPLAIN evidence), `docs/sql/reviewer-queries.sql` (SQL tasks
+with results), `docs/api/openapi.json` (OpenAPI 3.1).
 
 ## 1. Executive overview
 
@@ -23,8 +23,8 @@ containers. Out of scope: execution, payments, advice, real-time prices, notific
 multi-tenancy, Kubernetes, microservices.
 
 **Stack.** PostgreSQL 16 · Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2 async + asyncpg,
-Alembic · Argon2id + HS256 JWT in an HttpOnly cookie · Next.js 15, TypeScript, Tailwind,
-shadcn/ui, TanStack Query, React Hook Form + Zod, Recharts *(design)* · Docker Compose with an
+Alembic · Argon2id + HS256 JWT in an HttpOnly cookie · Next.js 15.5 App Router, TypeScript strict,
+Tailwind + shadcn/ui (Radix), TanStack Query v5, React Hook Form + Zod, Recharts · Docker Compose with an
 optional Caddy TLS proxy · GitHub Actions.
 
 **Major decisions** (ADRs in `DECISIONS.md`):
@@ -68,12 +68,17 @@ Backend layers (diagram in Appendix A), dependencies point inward only:
 There are no per-row queries: the portfolio endpoint issues 5 queries whatever the position count;
 the customer list issues 1 (page and total via `count(*) OVER ()`).
 
-**Frontend modules** *(design)*: `middleware.ts` route guard (no session cookie -> `/login`; the
-API still enforces auth); routes `/login`, `/` overview, `/customers`, `/customers/[id]`
-(overview/portfolio/transactions/goals tabs), `/admin/import`; feature folders `auth`,
-`customers`, `portfolio`, `transactions`, `goals`, `imports`, `overview`, each owning its query
-hooks, components and Zod schemas; a typed `lib/api` client calling same-origin `/api/v1/*` and
-mapping the error envelope; TanStack Query for all server state; ledger filters in the URL.
+**Frontend (apps/web).** Thin route files in `app/`: `/login`, `/` overview, `/customers`,
+`/customers/[id]` (+ `/portfolio`, `/transactions`, `/goals`), `/admin/import`. Feature folders
+(`auth`, `customers`, `overview`, `portfolio`, `transactions`, `goals`, `imports`) each own
+typed API calls, TanStack Query hooks with query-key factories, types generated from the OpenAPI
+spec, and components. `middleware.ts` redirects cookie-less requests to `/login?next=...` (the API
+still enforces auth); any 401 clears the query cache and returns to login; the `next` target is
+validated by `safeNextPath` (same-origin only; backslashes and control characters rejected), so
+it cannot be used as an open redirect. Filters, sort and pagination live in the URL; forms use
+React Hook Form + Zod mirroring the API rules and map API 422 `details[].field` errors onto
+inputs; every section has its own loading, empty and error state (showing the `request_id`).
+The browser only formats numbers, it never computes financial figures. 55 Vitest tests.
 
 ## 4. Data model
 
@@ -220,8 +225,8 @@ Reference files use the same audit tables via Pydantic row contracts and are loa
 `downgrade base` + `upgrade head`, pytest with coverage against real PostgreSQL. `docker.yml`:
 builds the API and web images with BuildKit cache, Trivy-scans the API image (CRITICAL/HIGH,
 report-only; action pinned to a commit SHA), then a compose smoke test (db + api with throw-away
-secrets: wait for healthy, `/health` reports the database healthy, demo login returns 200). A web
-lint/typecheck/test job is *(design)*. Deployment is `docker compose up --build`: the API
+secrets: wait for healthy, `/health` reports the database healthy, demo login returns 200). The `web`
+job runs `npm ci`, lint, typecheck, Vitest and `next build`. Deployment is `docker compose up --build`: the API
 container migrates, seeds idempotently, then serves.
 
 ## 7. Deployment topology
@@ -232,7 +237,7 @@ adds a fourth. **All published ports bind to 127.0.0.1.**
 | Service | Image | Host port | Start-up and health |
 |---|---|---|---|
 | `db` | `postgres:16-alpine`, volume `pgdata` | 5433 | `pg_isready` healthcheck |
-| `api` | `python:3.12-slim` multi-stage, uv-locked, non-root (uid 10001), CSVs baked in | 8000 | Starts when db is healthy. Entrypoint: `alembic upgrade head` -> seed (if `SEED_ON_START`) -> `uvicorn --workers 2 --proxy-headers`. `HEALTHCHECK` = `/api/v1/health` (fails if the DB is unreachable) |
+| `api` | `python:3.12-slim` multi-stage, uv-locked, non-root (uid 10001), CSVs baked in | 8000 | Starts when db is healthy. Entrypoint: `alembic upgrade head` -> seed (if `SEED_ON_START`) -> `uvicorn --workers 2 --proxy-headers`, trusting forwarded headers only from `FORWARDED_ALLOW_IPS` (default 127.0.0.1). `HEALTHCHECK` = `/api/v1/health` (fails if the DB is unreachable) |
 | `web` | Next.js standalone on `node:22-alpine`, non-root | 3000 | Starts when api is healthy; rewrites `/api/*` to `API_INTERNAL_URL=http://api:8000`; healthcheck `GET /login` |
 | `proxy` (profile) | `caddy:2-alpine`, `tls internal` | 8443 | `https://localhost:8443`; `/api/*` and docs to api, rest to web; HSTS, nosniff, frame-deny headers |
 
@@ -252,7 +257,7 @@ shipped to a central store.
 
 | Concern | Control |
 |---|---|
-| Authentication | Argon2id hashes (rehashed on login when parameters change). Identical 401 for unknown user, wrong password and inactive user; a dummy hash is verified for unknown e-mails to equalise timing. Login limit 5 attempts / 60 s per client IP + e-mail, held in memory per uvicorn worker |
+| Authentication | Argon2id hashes (rehashed on login when parameters change). Identical 401 for unknown user, wrong password and inactive user; a dummy hash is verified for unknown e-mails to equalise timing. Two login budgets, both charged on every attempt: 5 / 60 s per (client IP, e-mail) and 10 / 60 s per e-mail. The second cannot be reset by changing addresses; a flood can lock one account's sign-in for up to a minute. Held in memory per uvicorn worker |
 | Session | HS256 JWT with pinned algorithm and required `iss/exp/iat/sub/role`, 60 min, only in an `HttpOnly; SameSite=Lax` cookie (`Secure` over HTTPS), never in a body or `localStorage`. The user row is re-read per request, so deactivation and role changes apply immediately |
 | Authorisation | Role dependencies on routes (`AdminUser`); VIEWER reads and maintains goals, only ADMIN imports (tested both ways) |
 | Input validation | Pydantic contracts on every input, bounded lengths and page sizes, decimal precision, `extra="forbid"` |
@@ -261,7 +266,7 @@ shipped to a central store.
 | Uploads | ADMIN only; `.csv` + content-type allow-list; streamed 25 MB cap (413); strict UTF-8; exact header; field-count check; 64 KiB field cap; basename only; SHA-256 recorded |
 | Secrets | None in Git; `SecretStr`; `JWT_SECRET` >= 32 chars; with `ENVIRONMENT=production` a `_production_guards` validator refuses published/`local-dev` secrets and `COOKIE_SECURE=false` (unit-tested); CI generates throw-away secrets |
 | Logs and PII | Access log has method, path, status, duration, `request_id`; no query strings, bodies, cookies or passwords. Failed-login events log the attempted e-mail and client IP (PII; open: hash or restrict in production). Data is synthetic |
-| Network, images, client IP | Ports bound to 127.0.0.1; non-root containers; Caddy adds HSTS/nosniff/frame-deny; Trivy in CI. uvicorn `--proxy-headers` with `FORWARDED_ALLOW_IPS="*"` (api reachable only on the private network) so the rate-limit key and logs see the real client IP |
+| Network, images, client IP | Ports bound to 127.0.0.1; non-root containers; Caddy adds HSTS/nosniff/frame-deny; Trivy in CI. The Next.js rewrite passes a client-supplied `X-Forwarded-For` through verbatim, so the api trusts forwarded headers only from `FORWARDED_ALLOW_IPS` (default 127.0.0.1). Behind the web proxy the API therefore sees the web container as the client, and the (IP, e-mail) budget acts per account. Real client IPs need an edge proxy that overwrites the header (production load balancer) |
 
 ## 9. Reliability and operations
 
@@ -292,7 +297,7 @@ shipped to a central store.
 **Scale limits (measured).** Every endpoint takes < 5 ms of DB time on the supplied data. At
 100k customers / 3M transactions: ledger page 1.3 ms; customer list ~0.5–1.1 s (AUM computed for
 all customers before paging); a 50k-transaction customer 129 ms (page 1) to 293 ms (page 2,000);
-monthly flows 1.3 s. The login limiter is in-process, so each worker and replica counts separately.
+monthly flows 1.3 s. Both login budgets are in-process, so each worker and replica counts separately.
 
 **Next steps:** (1) page-first customer list (530 -> 0.6 ms) + materialized AUM; (2) keyset and
 per-account `LATERAL` ledger paging (293 -> 0.6 ms); (3) `If-Match` optimistic concurrency on goals;

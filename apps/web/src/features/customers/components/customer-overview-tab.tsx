@@ -84,7 +84,8 @@ export function CustomerOverviewTab({ customerId }: { customerId: string }) {
             Accounts
           </h2>
           {portfolio.isPending ? (
-            <div className="grid gap-3 md:grid-cols-2" aria-hidden>
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3" aria-hidden>
+              <Skeleton className="h-36" />
               <Skeleton className="h-36" />
               <Skeleton className="h-36" />
             </div>

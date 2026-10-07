@@ -19,7 +19,7 @@ export function GoalSummaryCard({ customerId }: { customerId: string }) {
   const href = `/customers/${customerId}/goals`;
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
         <CardTitle>Goals</CardTitle>
         <CardDescription>{data ? pluralize(data.summary.goals, "goal") : "Funding progress"}</CardDescription>
@@ -29,7 +29,7 @@ export function GoalSummaryCard({ customerId }: { customerId: string }) {
           </Button>
         </CardAction>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-1 flex-col">
         {isPending ? (
           <div className="space-y-3" aria-hidden>
             <Skeleton className="h-6 w-32" />
@@ -47,7 +47,7 @@ export function GoalSummaryCard({ customerId }: { customerId: string }) {
             </Button>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="flex flex-1 flex-col gap-4">
             <StatStrip
               bare
               label="Goal funding"
@@ -55,18 +55,31 @@ export function GoalSummaryCard({ customerId }: { customerId: string }) {
               items={[
                 { label: "Funded overall", value: formatPercent(data.summary.funded_pct) },
                 {
-                  label: "Funded / target",
-                  value: `${formatMoneyCompact(data.summary.total_funded)} / ${formatMoneyCompact(data.summary.total_target)}`,
+                  label: "Funded",
+                  value: formatMoneyCompact(data.summary.total_funded),
+                  hint: `of ${formatMoneyCompact(data.summary.total_target)} target`,
                   title: `${formatMoney(data.summary.total_funded)} of ${formatMoney(data.summary.total_target)}`,
                 },
               ]}
             />
-            <Progress value={Math.min(data.summary.funded_pct ?? 0, 100)} aria-label="Overall goal funding" />
-            {data.summary.flagged > 0 ? (
-              <StatusDot tone="warning">
-                {pluralize(data.summary.flagged, "goal")} {data.summary.flagged === 1 ? "needs" : "need"} attention
-              </StatusDot>
-            ) : null}
+            <ul className="divide-y text-[13px]" aria-label="Goals">
+              {data.items.slice(0, 3).map((g) => (
+                <li key={g.goal_id} className="flex items-baseline justify-between gap-3 py-2.5 first:pt-0">
+                  <span className="min-w-0 truncate" title={g.goal_name}>
+                    {g.goal_name}
+                  </span>
+                  <span className="tabular text-muted-foreground">{formatPercent(g.funded_pct)}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-auto space-y-3">
+              <Progress value={Math.min(data.summary.funded_pct ?? 0, 100)} aria-label="Overall goal funding" />
+              {data.summary.flagged > 0 ? (
+                <StatusDot tone="warning">
+                  {pluralize(data.summary.flagged, "goal")} {data.summary.flagged === 1 ? "needs" : "need"} attention
+                </StatusDot>
+              ) : null}
+            </div>
           </div>
         )}
       </CardContent>

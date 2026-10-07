@@ -17,7 +17,7 @@ export function AccountCards({ accounts }: { accounts: AccountValuation[] }) {
     );
   }
   return (
-    <ul className="grid gap-3 md:grid-cols-2">
+    <ul className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
       {accounts.map((a) => (
         <li key={a.account_id}>
           <Card className={cn("h-full", a.status === "CLOSED" && "opacity-75")}>

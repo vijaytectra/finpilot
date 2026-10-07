@@ -52,10 +52,10 @@ export function DataQualityCard({ exceptions }: { exceptions: ExceptionCount[] }
                 {copy.description ? <p className="text-xs text-muted-foreground">{copy.description}</p> : null}
                 <ul className="mt-1">
                   {rows.map((r) => (
-                    <li key={`${r.entity}-${r.rule}`} className="flex items-center justify-between gap-3 py-2 text-[13px]">
-                      <span className="min-w-0">
-                        <span className="block truncate">{humanizeEnum(r.rule)}</span>
-                        <span className="block text-[12px] text-muted-foreground">{humanizeEnum(r.entity)}</span>
+                    <li key={`${r.entity}-${r.rule}`} className="flex items-center justify-between gap-3 py-1.5 text-[13px]">
+                      <span className="min-w-0 truncate">
+                        {humanizeEnum(r.rule)}
+                        <span className="text-[12px] text-muted-foreground"> · {humanizeEnum(r.entity)}</span>
                       </span>
                       <span className="tabular font-medium">{formatInteger(r.count)}</span>
                     </li>

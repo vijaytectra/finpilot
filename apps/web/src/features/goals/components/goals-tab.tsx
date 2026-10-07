@@ -82,8 +82,9 @@ export function GoalsTab({ customerId }: { customerId: string }) {
 
 function GoalsSummaryStrip({ summary }: { summary: GoalSummary }) {
   return (
-    <div className="space-y-3">
+    <div className="rounded-[10px] border bg-card shadow-card">
       <StatStrip
+        bare
         label="Goal funding summary"
         items={[
           { label: "Overall funding", value: formatPercent(summary.funded_pct) },
@@ -99,7 +100,10 @@ function GoalsSummaryStrip({ summary }: { summary: GoalSummary }) {
           },
         ]}
       />
-      <Progress value={Math.min(summary.funded_pct ?? 0, 100)} aria-label="Overall goal funding" />
+      <div className="space-y-2 border-t px-5 py-4">
+        <p className="text-xs text-muted-foreground">Overall funding progress</p>
+        <Progress value={Math.min(summary.funded_pct ?? 0, 100)} aria-label="Overall goal funding" />
+      </div>
     </div>
   );
 }

@@ -120,54 +120,59 @@ function AdminImport() {
       </Card>
 
       {batchId ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{batchId === freshId ? "Import result" : "Import details"}</CardTitle>
-            <CardDescription className="font-mono text-xs">Batch {batchId}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {batch.isPending ? (
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-busy="true">
-                {Array.from({ length: 4 }, (_, i) => (
-                  <Skeleton key={i} className="h-28" />
-                ))}
-              </div>
-            ) : batch.isError ? (
-              <ErrorState error={batch.error} onRetry={() => void batch.refetch()} isRetrying={batch.isRefetching} compact />
-            ) : (
-              <>
-                <ImportSummary batch={batch.data} live={batchId === freshId} />
-                <section aria-labelledby="rejected-heading" className="space-y-3">
-                  <h3 id="rejected-heading" className="text-sm font-semibold">
-                    Rejected rows
-                  </h3>
-                  <ImportErrorsTable
-                    batchId={batchId}
-                    rejected={batch.data.rejected_rows}
-                    page={errorsPage}
-                    onPageChange={(p) => update({ errors_page: p === 1 ? null : p })}
-                  />
-                </section>
-              </>
-            )}
-          </CardContent>
-        </Card>
+        <section aria-labelledby="batch-heading" className="space-y-4">
+          <SectionHeading id="batch-heading" title={batchId === freshId ? "Import result" : "Import details"}>
+            <span className="font-mono text-xs">Batch {batchId}</span>
+          </SectionHeading>
+          {batch.isPending ? (
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-busy="true">
+              {Array.from({ length: 4 }, (_, i) => (
+                <Skeleton key={i} className="h-28" />
+              ))}
+            </div>
+          ) : batch.isError ? (
+            <ErrorState error={batch.error} onRetry={() => void batch.refetch()} isRetrying={batch.isRefetching} compact />
+          ) : (
+            <>
+              <ImportSummary batch={batch.data} live={batchId === freshId} />
+              <section aria-labelledby="rejected-heading" className="space-y-3">
+                <h3 id="rejected-heading" className="text-sm font-semibold">
+                  Rejected rows
+                </h3>
+                <ImportErrorsTable
+                  batchId={batchId}
+                  rejected={batch.data.rejected_rows}
+                  page={errorsPage}
+                  onPageChange={(p) => update({ errors_page: p === 1 ? null : p })}
+                />
+              </section>
+            </>
+          )}
+        </section>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Import history</CardTitle>
-          <CardDescription>Seed loads and uploads, newest first. Select one to see its rejected rows.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ImportHistory
-            page={historyPage}
-            selectedId={batchId}
-            onPageChange={(p) => update({ history_page: p === 1 ? null : p })}
-            onSelect={(id) => update({ batch: id, errors_page: null })}
-          />
-        </CardContent>
-      </Card>
+      <section aria-labelledby="history-heading" className="space-y-4">
+        <SectionHeading id="history-heading" title="Import history">
+          Seed loads and uploads, newest first. Select one to see its rejected rows.
+        </SectionHeading>
+        <ImportHistory
+          page={historyPage}
+          selectedId={batchId}
+          onPageChange={(p) => update({ history_page: p === 1 ? null : p })}
+          onSelect={(id) => update({ batch: id, errors_page: null })}
+        />
+      </section>
+    </div>
+  );
+}
+
+function SectionHeading({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <h2 id={id} className="text-base font-semibold">
+        {title}
+      </h2>
+      <p className="text-[13px] text-muted-foreground">{children}</p>
     </div>
   );
 }

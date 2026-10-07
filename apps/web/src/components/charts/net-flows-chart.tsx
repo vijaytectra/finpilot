@@ -3,6 +3,7 @@
 import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { formatInteger, formatMoney, formatMoneyCompact, formatMonth, formatMonthShort } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 export interface FlowDatum {
   month: string;
@@ -33,19 +34,19 @@ function FlowTooltip({ active, payload }: { active?: boolean; payload?: { payloa
 }
 
 /** Single-series bar chart of monthly net invested (buys − sells, computed by the API). */
-export function NetFlowsChart({ data }: { data: FlowDatum[] }) {
+export function NetFlowsChart({ data, className }: { data: FlowDatum[]; className?: string }) {
   const label = `Monthly net invested, ${formatMonth(data[0]?.month)} to ${formatMonth(data.at(-1)?.month)}. See the table view for exact values.`;
   return (
-    <div role="img" aria-label={label} className="h-64 w-full">
+    <div role="img" aria-label={label} className={cn("h-64 w-full", className)}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }} barCategoryGap="22%">
-          <CartesianGrid vertical={false} stroke="var(--border)" />
+          <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
           <XAxis
             dataKey="month"
             tickFormatter={(v: string) => formatMonthShort(v)}
             tickLine={false}
             axisLine={false}
-            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+            tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
             interval="preserveStartEnd"
             minTickGap={8}
           />
@@ -54,13 +55,17 @@ export function NetFlowsChart({ data }: { data: FlowDatum[] }) {
             tickLine={false}
             axisLine={false}
             width={72}
-            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+            tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
           />
           <ReferenceLine y={0} stroke="var(--muted-foreground)" strokeOpacity={0.5} />
           <Tooltip content={<FlowTooltip />} cursor={{ fill: "var(--muted)", opacity: 0.6 }} />
-          <Bar dataKey="net_invested" radius={[4, 4, 0, 0]} maxBarSize={36} isAnimationActive={false}>
+          <Bar dataKey="net_invested" radius={[3, 3, 0, 0]} maxBarSize={28} isAnimationActive={false}>
             {data.map((d) => (
-              <Cell key={d.month} fill={d.net_invested < 0 ? "var(--negative)" : "var(--chart-1)"} />
+              <Cell
+                key={d.month}
+                fill={d.net_invested < 0 ? "var(--negative)" : "var(--primary)"}
+                fillOpacity={d.net_invested < 0 ? 1 : 0.85}
+              />
             ))}
           </Bar>
         </BarChart>

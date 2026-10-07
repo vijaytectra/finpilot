@@ -16,6 +16,7 @@ export interface NavSection {
 
 export const NAV_SECTIONS: NavSection[] = [
   {
+    label: "Workspace",
     items: [
       { href: "/", label: "Overview", icon: LayoutDashboard, isActive: (p) => p === "/" },
       { href: "/customers", label: "Customers", icon: Users, isActive: (p) => p.startsWith("/customers") },
@@ -34,3 +35,10 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
 ];
+
+export function currentNavLabel(pathname: string): string | undefined {
+  for (const section of NAV_SECTIONS) {
+    for (const item of section.items) if (item.isActive(pathname)) return item.label;
+  }
+  return undefined;
+}

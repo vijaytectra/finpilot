@@ -63,7 +63,7 @@ export function DatePicker({
             )}
           >
             <CalendarIcon aria-hidden />
-            {value ? formatDate(value) : placeholder}
+            <span className="min-w-0 truncate">{value ? formatDate(value) : placeholder}</span>
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">

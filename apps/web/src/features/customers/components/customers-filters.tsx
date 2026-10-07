@@ -45,8 +45,8 @@ export function CustomersFilters({ params, onChange }: CustomersFiltersProps) {
   const hasFilters = Boolean(params.search || params.kyc_status || params.segment);
 
   return (
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
-      <div className="flex-1 space-y-1.5">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+      <div className="space-y-1.5 sm:flex-1">
         <Label htmlFor="customer-search">Search</Label>
         <InputGroup>
           <InputGroupAddon>
@@ -71,14 +71,14 @@ export function CustomersFilters({ params, onChange }: CustomersFiltersProps) {
         </InputGroup>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:flex">
+      <div className="grid grid-cols-2 gap-3 sm:flex">
         <div className="space-y-1.5">
           <Label htmlFor="kyc-filter">KYC status</Label>
           <Select
             value={params.kyc_status ?? ALL}
             onValueChange={(v) => onChange({ kyc_status: v === ALL ? null : v }, { resetPage: true })}
           >
-            <SelectTrigger id="kyc-filter" className="w-full lg:w-36">
+            <SelectTrigger id="kyc-filter" className="w-full sm:w-44">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -98,7 +98,7 @@ export function CustomersFilters({ params, onChange }: CustomersFiltersProps) {
             value={params.segment ?? ALL}
             onValueChange={(v) => onChange({ segment: v === ALL ? null : v }, { resetPage: true })}
           >
-            <SelectTrigger id="segment-filter" className="w-full lg:w-36">
+            <SelectTrigger id="segment-filter" className="w-full sm:w-44">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -115,7 +115,7 @@ export function CustomersFilters({ params, onChange }: CustomersFiltersProps) {
         <div className="col-span-2 space-y-1.5 sm:col-span-1">
           <Label htmlFor="customer-sort">Sort by</Label>
           <Select value={params.sort} onValueChange={(v) => onChange({ sort: v }, { resetPage: true })}>
-            <SelectTrigger id="customer-sort" className="w-full lg:w-48">
+            <SelectTrigger id="customer-sort" className="w-full sm:w-44">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

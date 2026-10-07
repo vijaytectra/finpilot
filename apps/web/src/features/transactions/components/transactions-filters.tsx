@@ -44,9 +44,9 @@ export function TransactionsFilters({ filters, facets, facetsLoading, onChange }
 
   if (facetsLoading) {
     return (
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-7" aria-hidden>
+      <div className="flex flex-wrap gap-3" aria-hidden>
         {Array.from({ length: 7 }, (_, i) => (
-          <div key={i} className="space-y-1.5">
+          <div key={i} className="w-36 space-y-1.5">
             <Skeleton className="h-4 w-16" />
             <Skeleton className="h-9 w-full" />
           </div>
@@ -66,8 +66,10 @@ export function TransactionsFilters({ filters, facets, facetsLoading, onChange }
   const maxDate = facets?.max_trade_date ?? undefined;
 
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-[repeat(2,minmax(0,0.9fr))_repeat(3,minmax(0,1.1fr))_repeat(2,minmax(0,1fr))]">
+    // Seven filters do not fit one row without truncating values, so they sit in two
+    // rows of four; "Clear filters" takes the eighth cell.
+    <div>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <div className="space-y-1.5">
           <Label htmlFor="tx-from">From</Label>
           <DatePicker
@@ -92,7 +94,7 @@ export function TransactionsFilters({ filters, facets, facetsLoading, onChange }
             clearable
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="col-span-2 space-y-1.5 sm:col-span-1">
           <Label htmlFor="tx-account">Account</Label>
           <Select
             value={filters.account_id ?? ALL}
@@ -157,12 +159,14 @@ export function TransactionsFilters({ filters, facets, facetsLoading, onChange }
             </SelectContent>
           </Select>
         </div>
+        {active > 0 ? (
+          <div className="flex items-end">
+            <Button variant="ghost" onClick={() => onChange(CLEAR_TRANSACTION_FILTERS)}>
+              <X aria-hidden /> Clear {active} {active === 1 ? "filter" : "filters"}
+            </Button>
+          </div>
+        ) : null}
       </div>
-      {active > 0 ? (
-        <Button variant="ghost" size="sm" onClick={() => onChange(CLEAR_TRANSACTION_FILTERS)}>
-          <X aria-hidden /> Clear {active} {active === 1 ? "filter" : "filters"}
-        </Button>
-      ) : null}
     </div>
   );
 }

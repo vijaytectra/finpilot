@@ -7,7 +7,7 @@ import { ASSET_CLASSES, assetClassLabel, type AssetClass } from "@/components/ch
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -60,24 +60,22 @@ export function PortfolioTab({ customerId }: { customerId: string }) {
       <PortfolioSummary portfolio={data} />
 
       <Card>
-        <CardHeader className="gap-4 sm:flex sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-1.5">
-            <CardTitle>Positions</CardTitle>
-            <CardDescription>
-              {filtered
-                ? `${pluralize(positions.length, "position")} of ${data.positions.length} shown`
-                : pluralize(data.positions.length, "position")}
-            </CardDescription>
-          </div>
+        <CardHeader>
+          <CardTitle>Positions</CardTitle>
+          <CardDescription>
+            {filtered
+              ? `${pluralize(positions.length, "position")} of ${data.positions.length} shown`
+              : pluralize(data.positions.length, "position")}
+          </CardDescription>
           {data.positions.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3 sm:flex sm:items-end">
-              <div className="space-y-1.5">
-                <Label htmlFor="position-account">Account</Label>
+            <CardAction className="flex flex-wrap gap-2">
+              <div className="space-y-1">
+                <Label htmlFor="position-account" className="text-xs">Account</Label>
                 <Select
                   value={account ?? ALL}
                   onValueChange={(v) => update({ account: v === ALL ? null : v }, { replace: true })}
                 >
-                  <SelectTrigger id="position-account" className="w-full sm:w-52">
+                  <SelectTrigger id="position-account" className="w-40">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -90,13 +88,13 @@ export function PortfolioTab({ customerId }: { customerId: string }) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="position-class">Asset class</Label>
+              <div className="space-y-1">
+                <Label htmlFor="position-class" className="text-xs">Asset class</Label>
                 <Select
                   value={assetClass ?? ALL}
                   onValueChange={(v) => update({ asset_class: v === ALL ? null : v }, { replace: true })}
                 >
-                  <SelectTrigger id="position-class" className="w-full sm:w-40">
+                  <SelectTrigger id="position-class" className="w-40">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -109,18 +107,20 @@ export function PortfolioTab({ customerId }: { customerId: string }) {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
+            </CardAction>
           ) : null}
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0">
           {data.positions.length === 0 ? (
             <EmptyState
+              className="mx-5"
               icon={Layers}
               title="No positions in the current snapshot"
               description="This customer holds no instruments as of the latest holdings snapshot."
             />
           ) : positions.length === 0 ? (
             <EmptyState
+              className="mx-5"
               icon={FilterX}
               title="No positions match these filters"
               action={

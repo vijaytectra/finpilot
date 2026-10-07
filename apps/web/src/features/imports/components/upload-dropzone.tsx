@@ -49,14 +49,14 @@ export function UploadDropzone({ onUpload, uploading, progress }: UploadDropzone
           if (!uploading) choose(e.dataTransfer.files[0]);
         }}
         className={cn(
-          "flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors",
+          "flex cursor-pointer flex-col items-center justify-center gap-3 rounded-[10px] border border-dashed bg-card px-6 py-10 text-center transition-colors",
           "has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50",
-          dragging ? "border-primary bg-accent" : "hover:bg-muted/50",
+          dragging ? "border-primary bg-accent/40" : "hover:border-primary hover:bg-accent/40",
           uploading && "pointer-events-none opacity-70",
           error && "border-destructive/50",
         )}
       >
-        <span className="flex size-11 items-center justify-center rounded-full bg-accent text-accent-foreground">
+        <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <UploadCloud className="size-5" aria-hidden />
         </span>
         <span className="space-y-1">

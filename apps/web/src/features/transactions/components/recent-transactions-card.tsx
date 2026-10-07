@@ -58,21 +58,24 @@ export function RecentTransactionsCard({ customerId }: { customerId: string }) {
             {data.items.map((t) => (
               <li
                 key={t.transaction_id}
-                className={cn("flex items-center gap-3 py-2.5 text-sm", transactionRowClass(t.status), "bg-transparent")}
+                className={cn(
+                  "flex items-center justify-between gap-3 py-2.5 text-[13px]",
+                  transactionRowClass(t.status),
+                  "bg-transparent",
+                )}
               >
-                <div className="w-20 shrink-0 text-xs text-muted-foreground">{formatDate(t.trade_date)}</div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{t.symbol}</p>
-                  <p className="truncate text-xs text-muted-foreground">{t.instrument_name}</p>
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="w-20 shrink-0 text-muted-foreground">{formatDate(t.trade_date)}</span>
+                  <TransactionTypeBadge type={t.transaction_type} className="hidden sm:inline" />
+                  <span className="truncate font-mono font-medium" title={t.instrument_name}>
+                    {t.symbol}
+                  </span>
                 </div>
-                <div className="hidden sm:block">
-                  <TransactionTypeBadge type={t.transaction_type} />
-                </div>
-                <div className="flex flex-col items-end gap-1">
+                <div className="flex shrink-0 items-center gap-3">
+                  {t.status !== "SETTLED" ? <TransactionStatusBadge status={t.status} /> : null}
                   <span className="tabular font-medium" data-amount>
                     {formatMoney(t.amount)}
                   </span>
-                  {t.status !== "SETTLED" ? <TransactionStatusBadge status={t.status} /> : null}
                 </div>
               </li>
             ))}

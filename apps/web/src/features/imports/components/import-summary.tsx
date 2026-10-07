@@ -1,40 +1,24 @@
-import { AlertTriangle, CopyCheck, FileText, PlusCircle, XCircle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 
+import { StatStrip } from "@/components/stat-strip";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatBytes, formatDateTime, formatInteger } from "@/lib/format";
-import { cn } from "@/lib/utils";
 
 import type { ImportBatch } from "../types";
 import { ImportStatusBadge } from "./import-status-badge";
 
 const TILES = [
-  {
-    key: "total_rows",
-    label: "Rows in file",
-    icon: FileText,
-    explain: "Data rows read from the CSV, excluding the header.",
-    tone: "",
-  },
-  {
-    key: "inserted_rows",
-    label: "Inserted",
-    icon: PlusCircle,
-    explain: "New transactions written to the ledger.",
-    tone: "text-positive",
-  },
+  { key: "total_rows", label: "Rows in file", explain: "Data rows read from the CSV, excluding the header." },
+  { key: "inserted_rows", label: "Inserted", explain: "New transactions written to the ledger." },
   {
     key: "duplicate_rows",
     label: "Duplicates skipped",
-    icon: CopyCheck,
     explain: "Identical to records already stored, so re-uploading a file is safe.",
-    tone: "text-info",
   },
   {
     key: "rejected_rows",
     label: "Rejected",
-    icon: XCircle,
     explain: "Failed validation and were not imported. Each is listed below with its reason.",
-    tone: "text-negative",
   },
 ] as const;
 
@@ -62,25 +46,15 @@ export function ImportSummary({ batch, live = false }: { batch: ImportBatch; liv
         </Alert>
       ) : null}
 
-      <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {TILES.map((tile) => {
-          const Icon = tile.icon;
-          return (
-            <div key={tile.key} className="rounded-lg border bg-card p-4">
-              <dt className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                <Icon className={cn("size-3.5", tile.tone)} aria-hidden />
-                {tile.label}
-              </dt>
-              <dd className="mt-1 space-y-1">
-                <span className={cn("tabular block text-2xl font-semibold", batch[tile.key] > 0 && tile.tone)}>
-                  {formatInteger(batch[tile.key])}
-                </span>
-                <span className="block text-xs text-muted-foreground">{tile.explain}</span>
-              </dd>
-            </div>
-          );
-        })}
-      </dl>
+      <StatStrip
+        label="Import result"
+        items={TILES.map((tile) => ({
+          label: tile.label,
+          value: formatInteger(batch[tile.key]),
+          hint: tile.explain,
+          title: tile.explain,
+        }))}
+      />
     </section>
   );
 }

@@ -50,16 +50,16 @@ export function ImportErrorsTable({ batchId, rejected, page, onPageChange }: Imp
   if (isError) return <ErrorState error={error} onRetry={() => void refetch()} isRetrying={isRefetching} compact />;
 
   return (
-    <div className="space-y-3">
+    <div className="overflow-hidden rounded-[10px] border bg-card shadow-card">
       <div className={cn("overflow-x-auto transition-opacity", isPlaceholderData && "opacity-60")}>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-20">Line</TableHead>
+              <TableHead className="w-20 pl-5">Line</TableHead>
               <TableHead>Reason</TableHead>
               <TableHead className="hidden md:table-cell">Field</TableHead>
               <TableHead>Message</TableHead>
-              <TableHead className="w-24">
+              <TableHead className="w-24 pr-5">
                 <span className="sr-only">Raw row</span>
               </TableHead>
             </TableRow>
@@ -71,7 +71,13 @@ export function ImportErrorsTable({ batchId, rejected, page, onPageChange }: Imp
           </TableBody>
         </Table>
       </div>
-      <PaginationBar pagination={data.pagination} onPageChange={onPageChange} itemLabel="rejected rows" isFetching={isFetching} />
+      <PaginationBar
+        className="border-t px-4 py-3"
+        pagination={data.pagination}
+        onPageChange={onPageChange}
+        itemLabel="rejected rows"
+        isFetching={isFetching}
+      />
     </div>
   );
 }
@@ -83,7 +89,7 @@ function ErrorRow({ row }: { row: ImportRowError }) {
   return (
     <Fragment>
       <TableRow>
-        <TableCell className="tabular font-mono text-xs">{row.line_number}</TableCell>
+        <TableCell className="tabular pl-5 font-mono text-[13px]">{row.line_number}</TableCell>
         <TableCell>
           <Badge variant="secondary" className="bg-negative-muted font-mono text-[11px] text-negative">
             {row.error_code}
@@ -92,7 +98,7 @@ function ErrorRow({ row }: { row: ImportRowError }) {
         </TableCell>
         <TableCell className="hidden font-mono text-xs md:table-cell">{row.field ?? "—"}</TableCell>
         <TableCell className="min-w-56 text-sm whitespace-normal">{row.message}</TableCell>
-        <TableCell className="text-right">
+        <TableCell className="pr-5 text-right">
           <Button
             variant="ghost"
             size="xs"
@@ -107,7 +113,7 @@ function ErrorRow({ row }: { row: ImportRowError }) {
       </TableRow>
       {open ? (
         <TableRow id={detailsId} className="bg-muted/40 hover:bg-muted/40">
-          <TableCell colSpan={5}>
+          <TableCell colSpan={5} className="px-5">
             {entries.length === 0 ? (
               <p className="text-xs text-muted-foreground">No raw values were captured for this line.</p>
             ) : (

@@ -8,7 +8,6 @@ import { PaginationBar } from "@/components/pagination-bar";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import { formatInteger } from "@/lib/format";
@@ -35,52 +34,55 @@ export function CustomersPage() {
         }
       />
 
-      <Card>
-        <CardContent className="space-y-5 px-3 sm:px-6">
-          <CustomersFilters params={params} onChange={update} />
+      <CustomersFilters params={params} onChange={update} />
 
-          {isPending ? (
-            <CustomersSkeleton />
-          ) : isError ? (
-            <ErrorState error={error} onRetry={() => void refetch()} isRetrying={isRefetching} />
-          ) : data.items.length === 0 ? (
-            hasFilters ? (
-              <EmptyState
-                icon={SearchX}
-                title="No customers match these filters"
-                description={params.search ? `Nothing found for “${params.search}”. Try a different name, ID, email or city.` : "Try widening the KYC or segment filter."}
-                action={
-                  <Button variant="outline" size="sm" onClick={() => update({ search: null, kyc_status: null, segment: null }, { resetPage: true })}>
-                    Clear filters
-                  </Button>
-                }
-              />
-            ) : (
-              <EmptyState icon={Users} title="No customers yet" description="Customers appear here once the seed data has been imported." />
-            )
+      {isPending ? (
+        <div className="rounded-[10px] border bg-card p-4 shadow-card">
+          <CustomersSkeleton />
+        </div>
+      ) : isError ? (
+        <div className="rounded-[10px] border bg-card p-4 shadow-card">
+          <ErrorState error={error} onRetry={() => void refetch()} isRetrying={isRefetching} />
+        </div>
+      ) : data.items.length === 0 ? (
+        <div className="rounded-[10px] border bg-card p-4 shadow-card">
+          {hasFilters ? (
+            <EmptyState
+              icon={SearchX}
+              title="No customers match these filters"
+              description={params.search ? `Nothing found for “${params.search}”. Try a different name, ID, email or city.` : "Try widening the KYC or segment filter."}
+              action={
+                <Button variant="outline" size="sm" onClick={() => update({ search: null, kyc_status: null, segment: null }, { resetPage: true })}>
+                  Clear filters
+                </Button>
+              }
+            />
           ) : (
-            <div aria-busy={isFetching} className="space-y-4">
-              <div className="hidden md:block">
-                <CustomersTable
-                  customers={data.items}
-                  sort={params.sort}
-                  onSort={(sort) => update({ sort }, { resetPage: true })}
-                  isFetching={isPlaceholderData}
-                />
-              </div>
-              <div className="md:hidden">
-                <CustomerCards customers={data.items} isFetching={isPlaceholderData} />
-              </div>
-              <PaginationBar
-                pagination={data.pagination}
-                onPageChange={(page) => update({ page: page === 1 ? null : page })}
-                itemLabel="customers"
-                isFetching={isFetching}
-              />
-            </div>
+            <EmptyState icon={Users} title="No customers yet" description="Customers appear here once the seed data has been imported." />
           )}
-        </CardContent>
-      </Card>
+        </div>
+      ) : (
+        <div aria-busy={isFetching} className="overflow-hidden rounded-[10px] border bg-card shadow-card">
+          <div className="hidden md:block">
+            <CustomersTable
+              customers={data.items}
+              sort={params.sort}
+              onSort={(sort) => update({ sort }, { resetPage: true })}
+              isFetching={isPlaceholderData}
+            />
+          </div>
+          <div className="p-3 md:hidden">
+            <CustomerCards customers={data.items} isFetching={isPlaceholderData} />
+          </div>
+          <PaginationBar
+            className="border-t px-4 py-3"
+            pagination={data.pagination}
+            onPageChange={(page) => update({ page: page === 1 ? null : page })}
+            itemLabel="customers"
+            isFetching={isFetching}
+          />
+        </div>
+      )}
     </div>
   );
 }

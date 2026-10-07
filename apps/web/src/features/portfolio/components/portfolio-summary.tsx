@@ -10,7 +10,7 @@ export function PortfolioSummary({ portfolio }: { portfolio: Portfolio }) {
   const active = accounts.filter((a) => a.status === "ACTIVE").length;
   return (
     <StatStrip
-      label="Customer summary"
+      label="Portfolio summary"
       items={[
         {
           label: "Market value",

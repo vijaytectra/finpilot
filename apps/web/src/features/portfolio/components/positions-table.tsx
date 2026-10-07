@@ -80,7 +80,7 @@ export function PositionsView({ positions, showAccount, snapshotPriceDate }: Pos
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead aria-sort={ariaSort(sort, "symbol")}>
+              <TableHead aria-sort={ariaSort(sort, "symbol")} className="pl-5">
                 <SortButton label="Instrument" column="symbol" sort={sort} onSort={setSort} align="left" />
               </TableHead>
               {showAccount ? <TableHead>Account</TableHead> : null}
@@ -93,7 +93,7 @@ export function PositionsView({ positions, showAccount, snapshotPriceDate }: Pos
               <TableHead aria-sort={ariaSort(sort, "unrealized_pnl")} className="text-right">
                 <SortButton label="Unrealised P/L" column="unrealized_pnl" sort={sort} onSort={setSort} />
               </TableHead>
-              <TableHead aria-sort={ariaSort(sort, "weight_pct")} className="text-right">
+              <TableHead aria-sort={ariaSort(sort, "weight_pct")} className="pr-5 text-right">
                 <SortButton label="Weight" column="weight_pct" sort={sort} onSort={setSort} />
               </TableHead>
             </TableRow>
@@ -101,22 +101,22 @@ export function PositionsView({ positions, showAccount, snapshotPriceDate }: Pos
           <TableBody>
             {rows.map((p) => (
               <TableRow key={`${p.account_id}-${p.instrument_id}`}>
-                <TableCell className="max-w-72">
+                <TableCell className="max-w-72 pl-5">
                   <div className="flex items-center gap-2">
                     <span
-                      className="size-2 shrink-0 rounded-sm"
+                      className="size-2 shrink-0 rounded-full"
                       style={{ background: ASSET_CLASS_COLOR[p.asset_class] }}
                       aria-hidden
                     />
-                    <span className="font-medium">{p.symbol}</span>
-                    <span className="text-xs text-muted-foreground">{assetClassLabel(p.asset_class)}</span>
+                    <span className="font-mono text-[13px] font-medium">{p.symbol}</span>
+                    <span className="text-[12px] text-muted-foreground">{assetClassLabel(p.asset_class)}</span>
                   </div>
-                  <span className="block truncate pl-4 text-xs text-muted-foreground">
+                  <span className="block truncate pl-4 text-[12px] text-muted-foreground">
                     {p.instrument_name}
                     {p.sector ? ` · ${p.sector}` : ""}
                   </span>
                 </TableCell>
-                {showAccount ? <TableCell className="font-mono text-xs text-muted-foreground">{p.account_id}</TableCell> : null}
+                {showAccount ? <TableCell className="font-mono text-[12px] text-muted-foreground">{p.account_id}</TableCell> : null}
                 <TableCell className="tabular text-right">{formatQuantity(p.quantity)}</TableCell>
                 <TableCell className="tabular text-right">{formatMoney(p.avg_cost)}</TableCell>
                 <TableCell className="tabular text-right">
@@ -128,16 +128,26 @@ export function PositionsView({ positions, showAccount, snapshotPriceDate }: Pos
                 <TableCell className="tabular text-right font-medium">{formatMoney(p.market_value)}</TableCell>
                 <TableCell className="text-right">
                   <Pnl amount={p.unrealized_pnl} />
-                  <Pnl percent={p.unrealized_pnl_pct} percentOnly className="block text-xs font-normal" iconClassName="hidden" />
+                  <Pnl percent={p.unrealized_pnl_pct} percentOnly className="block text-[12px] font-normal" iconClassName="hidden" />
                 </TableCell>
-                <TableCell className="tabular text-right">{formatPercent(p.weight_pct)}</TableCell>
+                <TableCell className="tabular pr-5 text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    {formatPercent(p.weight_pct)}
+                    <span className="hidden h-1.5 w-12 rounded-full bg-muted sm:block" aria-hidden>
+                      <span
+                        className="block h-full rounded-full bg-primary/70"
+                        style={{ width: `${Math.min(p.weight_pct, 100)}%` }}
+                      />
+                    </span>
+                  </div>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
 
-      <ul className="space-y-2 md:hidden">
+      <ul className="space-y-2 px-5 md:hidden">
         {rows.map((p) => (
           <li key={`${p.account_id}-${p.instrument_id}`} className="rounded-lg border bg-card p-3">
             <div className="flex items-start justify-between gap-3">

@@ -24,24 +24,24 @@ export function FreshnessBanner({ freshness }: { freshness: DataFreshness }) {
     </>
   );
 
+  const rowClass = "flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted-foreground";
+
   if (freshness.stale_prices) {
     return (
-      <Alert className="border-warning/40 bg-warning-muted/60">
-        <TriangleAlert aria-hidden className="text-warning" />
-        <AlertTitle>Some prices are older than the snapshot</AlertTitle>
-        <AlertDescription>
-          <p>{line}</p>
-          <p>
-            Oldest price used: {formatDate(freshness.oldest_price_as_of)}. Values for those positions may be out of date.
-          </p>
-        </AlertDescription>
-      </Alert>
+      <div className={rowClass}>
+        <TriangleAlert className="size-3.5 shrink-0 text-warning" aria-hidden />
+        <span className="font-medium text-warning">Some prices are older than the snapshot</span>
+        <span>{line}</span>
+        <span>
+          Oldest price used: {formatDate(freshness.oldest_price_as_of)}. Values for those positions may be out of date.
+        </span>
+      </div>
     );
   }
 
   return (
-    <p className="flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm text-muted-foreground">
-      <CalendarClock className="size-4 shrink-0" aria-hidden />
+    <p className={rowClass}>
+      <CalendarClock className="size-3.5 shrink-0" aria-hidden />
       <span>{line}</span>
     </p>
   );

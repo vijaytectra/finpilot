@@ -22,7 +22,7 @@ export function CustomerTabs({ customerId }: { customerId: string }) {
   const base = `/customers/${customerId}`;
 
   return (
-    <nav aria-label="Customer sections" className="flex gap-6 overflow-x-auto border-b">
+    <nav aria-label="Customer sections" className="flex gap-6 overflow-x-auto overflow-y-hidden border-b [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {TABS.map((tab) => {
         const href = tab.segment ? `${base}/${tab.segment}` : base;
         const active = tab.segment ? pathname.startsWith(href) : pathname === base;

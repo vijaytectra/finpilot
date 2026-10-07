@@ -15,24 +15,24 @@ interface TransactionsTableProps {
 export function TransactionsTable({ transactions, showAccount, isStale }: TransactionsTableProps) {
   return (
     <>
-      <div className={cn("hidden overflow-x-auto transition-opacity md:block", isStale && "opacity-60")}>
+      <div className={cn("hidden transition-opacity md:block", isStale && "opacity-60")}>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Trade date</TableHead>
+              <TableHead className="pl-5">Trade date</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Instrument</TableHead>
               {showAccount ? <TableHead>Account</TableHead> : null}
               <TableHead className="text-right">Quantity</TableHead>
               <TableHead className="text-right">Price</TableHead>
               <TableHead className="text-right">Amount</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead className="pr-5">Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {transactions.map((t) => (
               <TableRow key={t.transaction_id} className={transactionRowClass(t.status)} data-status={t.status}>
-                <TableCell className="whitespace-nowrap">
+                <TableCell className="whitespace-nowrap pl-5">
                   {formatDate(t.trade_date)}
                   <span className="block font-mono text-[11px] text-muted-foreground">{t.transaction_id}</span>
                 </TableCell>
@@ -40,7 +40,7 @@ export function TransactionsTable({ transactions, showAccount, isStale }: Transa
                   <TransactionTypeBadge type={t.transaction_type} />
                 </TableCell>
                 <TableCell className="max-w-64">
-                  <span className="block truncate font-medium">{t.symbol}</span>
+                  <span className="block truncate font-mono text-[13px] font-medium">{t.symbol}</span>
                   <span className="block truncate text-xs text-muted-foreground">
                     {t.instrument_name} · {assetClassLabel(t.asset_class)}
                   </span>
@@ -52,7 +52,7 @@ export function TransactionsTable({ transactions, showAccount, isStale }: Transa
                   <span data-amount>{formatMoney(t.amount)}</span>
                   {t.status === "REVERSED" ? <span className="sr-only"> (reversed, not counted)</span> : null}
                 </TableCell>
-                <TableCell>
+                <TableCell className="pr-5">
                   <TransactionStatusBadge status={t.status} />
                 </TableCell>
               </TableRow>
@@ -61,7 +61,7 @@ export function TransactionsTable({ transactions, showAccount, isStale }: Transa
         </Table>
       </div>
 
-      <ul className={cn("space-y-2 transition-opacity md:hidden", isStale && "opacity-60")}>
+      <ul className={cn("space-y-2 p-3 transition-opacity md:hidden", isStale && "opacity-60")}>
         {transactions.map((t) => (
           <li
             key={t.transaction_id}
@@ -72,7 +72,7 @@ export function TransactionsTable({ transactions, showAccount, isStale }: Transa
               <div className="min-w-0">
                 <p className="flex items-center gap-2">
                   <TransactionTypeBadge type={t.transaction_type} />
-                  <span className="truncate font-medium">{t.symbol}</span>
+                  <span className="truncate font-mono text-[13px] font-medium">{t.symbol}</span>
                 </p>
                 <p className="mt-1 truncate text-xs text-muted-foreground">{t.instrument_name}</p>
               </div>

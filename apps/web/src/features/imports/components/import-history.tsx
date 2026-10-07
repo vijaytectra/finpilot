@@ -40,12 +40,12 @@ export function ImportHistory({ page, selectedId, onPageChange, onSelect }: Impo
   }
 
   return (
-    <div className="space-y-3">
+    <div className="overflow-hidden rounded-[10px] border bg-card shadow-card">
       <div className={cn("overflow-x-auto transition-opacity", isPlaceholderData && "opacity-60")}>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Started</TableHead>
+              <TableHead className="pl-5">Started</TableHead>
               <TableHead>File</TableHead>
               <TableHead>Source</TableHead>
               <TableHead className="hidden lg:table-cell">Uploaded by</TableHead>
@@ -54,7 +54,7 @@ export function ImportHistory({ page, selectedId, onPageChange, onSelect }: Impo
               <TableHead className="text-right">Duplicates</TableHead>
               <TableHead className="text-right">Rejected</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>
+              <TableHead className="pr-5">
                 <span className="sr-only">Details</span>
               </TableHead>
             </TableRow>
@@ -64,7 +64,7 @@ export function ImportHistory({ page, selectedId, onPageChange, onSelect }: Impo
               const selected = b.id === selectedId;
               return (
                 <TableRow key={b.id} data-state={selected ? "selected" : undefined}>
-                  <TableCell className="text-xs whitespace-nowrap">{formatDateTime(b.started_at)}</TableCell>
+                  <TableCell className="pl-5 text-[13px] whitespace-nowrap">{formatDateTime(b.started_at)}</TableCell>
                   <TableCell className="max-w-48">
                     <span className="block truncate font-medium">{b.filename}</span>
                     <span className="text-xs text-muted-foreground">{humanizeEnum(b.kind)}</span>
@@ -82,7 +82,7 @@ export function ImportHistory({ page, selectedId, onPageChange, onSelect }: Impo
                   <TableCell>
                     <ImportStatusBadge status={b.status} />
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="pr-5 text-right">
                     <Button
                       variant={selected ? "secondary" : "ghost"}
                       size="xs"
@@ -99,7 +99,13 @@ export function ImportHistory({ page, selectedId, onPageChange, onSelect }: Impo
           </TableBody>
         </Table>
       </div>
-      <PaginationBar pagination={data.pagination} onPageChange={onPageChange} itemLabel="imports" isFetching={isFetching} />
+      <PaginationBar
+        className="border-t px-4 py-3"
+        pagination={data.pagination}
+        onPageChange={onPageChange}
+        itemLabel="imports"
+        isFetching={isFetching}
+      />
     </div>
   );
 }

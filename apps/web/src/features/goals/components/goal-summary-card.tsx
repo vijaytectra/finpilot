@@ -1,9 +1,11 @@
 "use client";
 
-import { AlertTriangle, Target } from "lucide-react";
+import { Target } from "lucide-react";
 import Link from "next/link";
 
 import { ErrorState } from "@/components/states/error-state";
+import { StatStrip } from "@/components/stat-strip";
+import { StatusDot } from "@/components/status-dot";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -46,22 +48,24 @@ export function GoalSummaryCard({ customerId }: { customerId: string }) {
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="flex items-baseline justify-between">
-              <span className="tabular text-2xl font-semibold">{formatPercent(data.summary.funded_pct)}</span>
-              <span className="text-xs text-muted-foreground">funded overall</span>
-            </div>
+            <StatStrip
+              bare
+              label="Goal funding"
+              className="-mx-5"
+              items={[
+                { label: "Funded overall", value: formatPercent(data.summary.funded_pct) },
+                {
+                  label: "Funded / target",
+                  value: `${formatMoneyCompact(data.summary.total_funded)} / ${formatMoneyCompact(data.summary.total_target)}`,
+                  title: `${formatMoney(data.summary.total_funded)} of ${formatMoney(data.summary.total_target)}`,
+                },
+              ]}
+            />
             <Progress value={Math.min(data.summary.funded_pct ?? 0, 100)} aria-label="Overall goal funding" />
-            <p className="tabular text-sm text-muted-foreground">
-              <span title={formatMoney(data.summary.total_funded)} className="font-medium text-foreground">
-                {formatMoneyCompact(data.summary.total_funded)}
-              </span>{" "}
-              of <span title={formatMoney(data.summary.total_target)}>{formatMoneyCompact(data.summary.total_target)}</span> target
-            </p>
             {data.summary.flagged > 0 ? (
-              <p className="flex items-center gap-1.5 text-sm text-warning">
-                <AlertTriangle className="size-4" aria-hidden />
+              <StatusDot tone="warning">
                 {pluralize(data.summary.flagged, "goal")} {data.summary.flagged === 1 ? "needs" : "need"} attention
-              </p>
+              </StatusDot>
             ) : null}
           </div>
         )}

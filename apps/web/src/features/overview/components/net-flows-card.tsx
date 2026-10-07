@@ -13,8 +13,8 @@ import type { MonthlyFlow } from "../types";
 
 export function NetFlowsCard({ flows }: { flows: MonthlyFlow[] }) {
   return (
-    <Card>
-      <Tabs defaultValue="chart" className="gap-0">
+    <Card className="h-full">
+      <Tabs defaultValue="chart" className="flex-1 gap-0">
         <CardHeader>
           <CardTitle>Net invested per month</CardTitle>
           <CardDescription>Buys minus sells per month, last 12 months (settled and pending)</CardDescription>
@@ -29,13 +29,13 @@ export function NetFlowsCard({ flows }: { flows: MonthlyFlow[] }) {
             </TabsList>
           </CardAction>
         </CardHeader>
-        <CardContent className="pt-4">
+        <CardContent className="flex flex-1 flex-col pt-4">
           {flows.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">No trades in the last 12 months.</p>
           ) : (
             <>
-              <TabsContent value="chart">
-                <NetFlowsChart data={flows} />
+              <TabsContent value="chart" className="relative min-h-64">
+                <NetFlowsChart data={flows} className="absolute inset-0 h-auto" />
               </TabsContent>
               <TabsContent value="table">
                 <div className="max-h-72 overflow-auto">

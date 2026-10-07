@@ -17,16 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLogout, useMe } from "@/features/auth/hooks";
-import { cn } from "@/lib/utils";
-
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-}
+import { cn, initials } from "@/lib/utils";
 
 /** Signed-in user + role, theme switch and sign-out. `compact` renders only the avatar. */
 export function UserMenu({ compact = false }: { compact?: boolean }) {

@@ -33,18 +33,18 @@ export function UnderfundedGoalsCard({ goals }: { goals: UnderfundedGoal[] }) {
               <li key={g.goal_id}>
                 <Link
                   href={`/customers/${g.customer_id}/goals`}
-                  className="-mx-2 flex flex-col gap-2 rounded-md px-2 py-3 outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 sm:grid sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] sm:items-center sm:gap-4"
+                  className="-mx-2 flex flex-col gap-2 rounded-md px-2 py-3 outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,220px)_104px] sm:items-center sm:gap-4"
                 >
                   <span className="min-w-0 truncate text-sm font-medium">
                     {g.full_name} <span className="font-normal text-muted-foreground">· {humanizeEnum(g.goal_type)}</span>
                   </span>
-                  <span className="block min-w-0 space-y-1.5">
+                  <span className="block w-full min-w-0 space-y-1.5">
                     <Progress
                       value={Math.min(g.funded_pct, 100)}
                       aria-label={`${g.full_name} ${humanizeEnum(g.goal_type)} goal funded`}
                       className="[&>[data-slot=progress-indicator]]:bg-warning"
                     />
-                    <span className="tabular block truncate text-[12px] text-muted-foreground" title={formatMoney(g.current_funded_amount)}>
+                    <span className="tabular block truncate text-left text-[12px] text-muted-foreground" title={formatMoney(g.current_funded_amount)}>
                       {formatMoneyCompact(g.current_funded_amount)} of {formatMoneyCompact(g.target_amount)}
                     </span>
                   </span>

@@ -1,36 +1,33 @@
-import { BadgeCheck, Clock, SearchCheck } from "lucide-react";
-
 import { Badge } from "@/components/ui/badge";
+import { StatusDot, type StatusTone } from "@/components/status-dot";
 import { cn } from "@/lib/utils";
 
 import type { KycStatus, Segment } from "../types";
 
-const KYC: Record<KycStatus, { label: string; icon: typeof BadgeCheck; className: string }> = {
-  VERIFIED: { label: "KYC verified", icon: BadgeCheck, className: "bg-positive-muted text-positive" },
-  PENDING: { label: "KYC pending", icon: Clock, className: "bg-warning-muted text-warning" },
-  REVIEW: { label: "KYC in review", icon: SearchCheck, className: "bg-info-muted text-info" },
+const KYC: Record<KycStatus, { label: string; tone: StatusTone }> = {
+  VERIFIED: { label: "KYC verified", tone: "positive" },
+  PENDING: { label: "KYC pending", tone: "warning" },
+  REVIEW: { label: "KYC in review", tone: "info" },
 };
 
 export function KycBadge({ status, className }: { status: KycStatus; className?: string }) {
   const meta = KYC[status];
-  const Icon = meta.icon;
   return (
-    <Badge variant="secondary" className={cn(meta.className, className)}>
-      <Icon aria-hidden />
+    <StatusDot tone={meta.tone} className={className}>
       {meta.label}
-    </Badge>
+    </StatusDot>
   );
 }
 
 const SEGMENT_STYLE: Record<Segment, string> = {
-  Mass: "",
-  Affluent: "border-primary/30 text-primary",
-  HNI: "border-primary bg-primary text-primary-foreground",
+  Mass: "border-border bg-transparent text-muted-foreground",
+  Affluent: "border-border bg-muted text-foreground",
+  HNI: "border-transparent bg-accent text-accent-foreground",
 };
 
 export function SegmentBadge({ segment, className }: { segment: Segment; className?: string }) {
   return (
-    <Badge variant="outline" className={cn(SEGMENT_STYLE[segment], className)}>
+    <Badge variant="outline" className={cn("rounded-md px-1.5 text-xs font-medium", SEGMENT_STYLE[segment], className)}>
       {segment}
       <span className="sr-only"> segment</span>
     </Badge>

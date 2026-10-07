@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { InitialsAvatar } from "@/components/initials-avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatInteger, formatMoney, formatMoneyCompact } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -78,14 +79,14 @@ export function CustomersTable({ customers, sort, onSort, isFetching }: Customer
     <Table className={cn("transition-opacity", isFetching && "opacity-60")}>
       <TableHeader>
         <TableRow>
-          <SortHeader column={COLUMNS.name} sort={sort} onSort={onSort} />
+          <SortHeader column={COLUMNS.name} sort={sort} onSort={onSort} className="pl-5" />
           <SortHeader column={COLUMNS.id} sort={sort} onSort={onSort} />
           <SortHeader column={COLUMNS.city} sort={sort} onSort={onSort} className="hidden lg:table-cell" />
           <TableHead>KYC</TableHead>
           <TableHead>Segment</TableHead>
           <TableHead className="text-right">Accounts</TableHead>
           <SortHeader column={COLUMNS.aum} sort={sort} onSort={onSort} className="text-right" align="right" />
-          <TableHead className="w-8">
+          <TableHead className="w-8 pr-5">
             <span className="sr-only">Open</span>
           </TableHead>
         </TableRow>
@@ -100,16 +101,21 @@ export function CustomersTable({ customers, sort, onSort, isFetching }: Customer
               router.push(`/customers/${c.customer_id}`);
             }}
           >
-            <TableCell className="max-w-64">
-              <Link
-                href={`/customers/${c.customer_id}`}
-                className="block truncate font-medium outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                {c.full_name}
-              </Link>
-              <span className="block truncate text-xs text-muted-foreground">{c.email}</span>
+            <TableCell className="max-w-72 pl-5">
+              <div className="flex items-center gap-3">
+                <InitialsAvatar name={c.full_name} />
+                <div className="min-w-0">
+                  <Link
+                    href={`/customers/${c.customer_id}`}
+                    className="block truncate text-sm font-medium outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+                  >
+                    {c.full_name}
+                  </Link>
+                  <span className="block truncate text-xs text-muted-foreground">{c.email}</span>
+                </div>
+              </div>
             </TableCell>
-            <TableCell className="tabular text-muted-foreground">{c.customer_id}</TableCell>
+            <TableCell className="font-mono text-[13px] text-muted-foreground">{c.customer_id}</TableCell>
             <TableCell className="hidden lg:table-cell">
               {c.city}, {c.state}
             </TableCell>
@@ -121,9 +127,9 @@ export function CustomersTable({ customers, sort, onSort, isFetching }: Customer
             </TableCell>
             <TableCell className="tabular text-right">{formatInteger(c.accounts)}</TableCell>
             <TableCell className="tabular text-right font-medium" title={formatMoney(c.aum)}>
-              {c.aum > 0 ? formatMoneyCompact(c.aum) : <span className="text-muted-foreground">No holdings</span>}
+              {c.aum > 0 ? formatMoneyCompact(c.aum) : <span className="font-normal text-muted-foreground">No holdings</span>}
             </TableCell>
-            <TableCell>
+            <TableCell className="pr-5">
               <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
             </TableCell>
           </TableRow>

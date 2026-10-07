@@ -35,7 +35,7 @@ export function PaginationBar({ pagination, onPageChange, itemLabel = "results",
       aria-label="Pagination"
       className={cn("flex flex-col items-center justify-between gap-3 text-sm sm:flex-row", className)}
     >
-      <p className="text-muted-foreground" aria-live="polite">
+      <p className="text-[13px] text-muted-foreground" aria-live="polite">
         Showing <span className="tabular font-medium text-foreground">{formatInteger(from)}</span>–
         <span className="tabular font-medium text-foreground">{formatInteger(to)}</span> of{" "}
         <span className="tabular font-medium text-foreground">{formatInteger(total)}</span> {itemLabel}
@@ -43,7 +43,7 @@ export function PaginationBar({ pagination, onPageChange, itemLabel = "results",
       </p>
       <div className="flex items-center gap-1">
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon-sm"
           onClick={() => onPageChange(1)}
           disabled={page <= 1}
@@ -52,7 +52,7 @@ export function PaginationBar({ pagination, onPageChange, itemLabel = "results",
         >
           <ChevronsLeft aria-hidden />
         </Button>
-        <Button variant="outline" size="sm" onClick={() => onPageChange(page - 1)} disabled={page <= 1} aria-label="Previous page">
+        <Button variant="ghost" size="sm" onClick={() => onPageChange(page - 1)} disabled={page <= 1} aria-label="Previous page">
           <ChevronLeft aria-hidden />
           <span className="hidden sm:inline">Previous</span>
         </Button>
@@ -60,7 +60,7 @@ export function PaginationBar({ pagination, onPageChange, itemLabel = "results",
           Page {formatInteger(page)} of {formatInteger(lastPage)}
         </span>
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={() => onPageChange(page + 1)}
           disabled={page >= lastPage}
@@ -70,7 +70,7 @@ export function PaginationBar({ pagination, onPageChange, itemLabel = "results",
           <ChevronRight aria-hidden />
         </Button>
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon-sm"
           onClick={() => onPageChange(lastPage)}
           disabled={page >= lastPage}

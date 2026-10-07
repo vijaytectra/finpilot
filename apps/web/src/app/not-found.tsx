@@ -12,7 +12,7 @@ export default function NotFound() {
         <p className="flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground">
           <Compass className="size-4" aria-hidden /> 404
         </p>
-        <h1 className="text-2xl font-semibold tracking-tight">This page doesn&apos;t exist</h1>
+        <h1 className="text-base font-semibold">This page doesn&apos;t exist</h1>
         <p className="max-w-sm text-sm text-muted-foreground">
           The link may be broken or the page may have moved. Check the address or head back to the overview.
         </p>

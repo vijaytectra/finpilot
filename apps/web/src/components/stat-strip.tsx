@@ -36,7 +36,7 @@ export function StatStrip({
             <dd className="tabular mt-1 truncate text-xl leading-tight font-semibold tracking-[-0.01em]" title={item.title}>
               {item.value}
             </dd>
-            {item.hint ? <dd className="mt-0.5 truncate text-xs text-muted-foreground">{item.hint}</dd> : null}
+            {item.hint ? <dd className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{item.hint}</dd> : null}
           </div>
         ))}
       </dl>

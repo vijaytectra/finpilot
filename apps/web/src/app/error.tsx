@@ -14,11 +14,11 @@ export default function RootError({ error, reset }: { error: Error & { digest?: 
 
   return (
     <main className="flex min-h-[60dvh] flex-col items-center justify-center gap-5 px-4 text-center" role="alert">
-      <span className="flex size-12 items-center justify-center rounded-full bg-negative-muted text-negative">
-        <AlertTriangle className="size-6" aria-hidden />
+      <span className="flex size-10 items-center justify-center rounded-full bg-negative-muted text-negative">
+        <AlertTriangle className="size-5" aria-hidden />
       </span>
       <div className="space-y-2">
-        <h1 className="text-xl font-semibold tracking-tight">Something went wrong</h1>
+        <h1 className="text-base font-semibold">Something went wrong</h1>
         <p className="max-w-md text-sm text-muted-foreground">
           An unexpected error stopped this page from rendering. You can try again, or return to the overview.
         </p>

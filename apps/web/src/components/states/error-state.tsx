@@ -56,7 +56,7 @@ export function ErrorState({ error, onRetry, isRetrying, title, className, compa
         <Icon className="size-5" aria-hidden />
       </span>
       <div className="space-y-1">
-        <p className="text-sm font-medium">{title ?? info.title}</p>
+        <p className="text-base font-semibold">{title ?? info.title}</p>
         <p className="max-w-md text-sm text-muted-foreground">{info.message}</p>
       </div>
       {onRetry ? (

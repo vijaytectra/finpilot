@@ -35,9 +35,9 @@ export function CustomerOverviewTab({ customerId }: { customerId: string }) {
         <PortfolioSummary portfolio={portfolio.data} />
       )}
 
-      <div className="grid items-start gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <Card>
+      <div className="grid items-stretch gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-8 [&>*]:h-full">
+          <Card className="h-full">
             <CardHeader>
               <CardTitle>Allocation</CardTitle>
               <CardDescription>
@@ -69,32 +69,37 @@ export function CustomerOverviewTab({ customerId }: { customerId: string }) {
               )}
             </CardContent>
           </Card>
-
-          <section aria-labelledby="accounts-heading" className="space-y-3">
-            <h2 id="accounts-heading" className="text-sm font-semibold">
-              Accounts
-            </h2>
-            {portfolio.isPending ? (
-              <div className="grid gap-3 md:grid-cols-2" aria-hidden>
-                <Skeleton className="h-36" />
-                <Skeleton className="h-36" />
-              </div>
-            ) : portfolio.isError ? (
-              <p className="text-sm text-muted-foreground">Accounts unavailable.</p>
-            ) : (
-              <AccountCards accounts={portfolio.data.accounts} />
-            )}
-          </section>
-
-          <RecentTransactionsCard customerId={customerId} />
         </div>
 
-        <div className="space-y-6">
+        <div className="lg:col-span-4 [&>*]:h-full">
           {customer.isPending ? (
             <RiskProfileCardSkeleton />
           ) : customer.isError ? null : (
             <RiskProfileCard profile={customer.data.risk_profile} />
           )}
+        </div>
+
+        <section aria-labelledby="accounts-heading" className="space-y-3 lg:col-span-12">
+          <h2 id="accounts-heading" className="text-sm font-semibold">
+            Accounts
+          </h2>
+          {portfolio.isPending ? (
+            <div className="grid gap-3 md:grid-cols-2" aria-hidden>
+              <Skeleton className="h-36" />
+              <Skeleton className="h-36" />
+            </div>
+          ) : portfolio.isError ? (
+            <p className="text-sm text-muted-foreground">Accounts unavailable.</p>
+          ) : (
+            <AccountCards accounts={portfolio.data.accounts} />
+          )}
+        </section>
+
+        <div className="lg:col-span-8 [&>*]:h-full">
+          <RecentTransactionsCard customerId={customerId} />
+        </div>
+
+        <div className="lg:col-span-4 [&>*]:h-full">
           <GoalSummaryCard customerId={customerId} />
         </div>
       </div>

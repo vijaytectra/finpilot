@@ -60,9 +60,9 @@ export function AllocationChart({ data, total, totalLabel = "Total", className }
               data={data}
               dataKey="market_value"
               nameKey="asset_class"
-              innerRadius={64}
+              innerRadius={70}
               outerRadius={96}
-              paddingAngle={data.length > 1 ? 1.5 : 0}
+              paddingAngle={data.length > 1 ? 1 : 0}
               stroke="var(--card)"
               strokeWidth={2}
               isAnimationActive={false}
@@ -76,7 +76,7 @@ export function AllocationChart({ data, total, totalLabel = "Total", className }
         </ResponsiveContainer>
         {total !== undefined ? (
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-            <span className="text-[11px] text-muted-foreground">{totalLabel}</span>
+            <span className="text-xs text-muted-foreground">{totalLabel}</span>
             <span className="tabular text-base font-semibold" title={formatMoney(total)}>
               {formatMoneyCompact(total)}
             </span>
@@ -98,7 +98,7 @@ export function AllocationChart({ data, total, totalLabel = "Total", className }
             <TableRow key={d.asset_class}>
               <TableCell>
                 <span className="flex items-center gap-2">
-                  <span className="size-2.5 shrink-0 rounded-sm" style={{ background: ASSET_CLASS_COLOR[d.asset_class] }} aria-hidden />
+                  <span className="size-2 shrink-0 rounded-full" style={{ background: ASSET_CLASS_COLOR[d.asset_class] }} aria-hidden />
                   {assetClassLabel(d.asset_class)}
                 </span>
               </TableCell>

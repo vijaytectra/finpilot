@@ -1,4 +1,4 @@
-import { Gauge, ShieldQuestion } from "lucide-react";
+import { ShieldQuestion } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -9,12 +9,9 @@ import type { RiskProfile } from "../types";
 
 export function RiskProfileCard({ profile }: { profile: RiskProfile | null }) {
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Gauge className="size-4 text-muted-foreground" aria-hidden />
-          Risk profile
-        </CardTitle>
+        <CardTitle>Risk profile</CardTitle>
         <CardDescription>
           {profile ? `Assessed ${formatDate(profile.assessed_at)}` : "Suitability assessment"}
         </CardDescription>
@@ -25,7 +22,7 @@ export function RiskProfileCard({ profile }: { profile: RiskProfile | null }) {
             <div className="space-y-2">
               <div className="flex items-baseline justify-between">
                 <span className="text-2xl font-semibold">{profile.risk_level}</span>
-                <span className="tabular text-sm text-muted-foreground">
+                <span className="tabular text-[13px] text-muted-foreground">
                   Score <span className="font-medium text-foreground">{profile.risk_score}</span> / 100
                 </span>
               </div>
@@ -35,16 +32,16 @@ export function RiskProfileCard({ profile }: { profile: RiskProfile | null }) {
                 <span>Aggressive</span>
               </div>
             </div>
-            <dl className="grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-md bg-muted/60 p-2.5">
-                <dt className="text-xs text-muted-foreground">Horizon</dt>
-                <dd className="font-medium">
+            <dl className="divide-y text-[13px]">
+              <div className="flex items-baseline justify-between gap-3 py-2">
+                <dt className="text-muted-foreground">Horizon</dt>
+                <dd className="tabular text-foreground">
                   {profile.horizon_years} {profile.horizon_years === 1 ? "year" : "years"}
                 </dd>
               </div>
-              <div className="rounded-md bg-muted/60 p-2.5">
-                <dt className="text-xs text-muted-foreground">Liquidity need</dt>
-                <dd className="font-medium">{humanizeEnum(profile.liquidity_need)}</dd>
+              <div className="flex items-baseline justify-between gap-3 py-2">
+                <dt className="text-muted-foreground">Liquidity need</dt>
+                <dd className="text-foreground">{humanizeEnum(profile.liquidity_need)}</dd>
               </div>
             </dl>
           </div>

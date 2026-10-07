@@ -48,7 +48,7 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
           "flex items-center gap-2 rounded-md text-left outline-none focus-visible:ring-3",
           compact
             ? "rounded-full focus-visible:ring-ring/50"
-            : "w-full justify-center p-2 text-sidebar-foreground hover:bg-sidebar-accent focus-visible:ring-sidebar-ring xl:justify-start",
+            : "w-full justify-center p-2 text-sidebar-foreground hover:bg-muted focus-visible:ring-ring/50 xl:justify-start",
         )}
         aria-label={`Account menu for ${user.full_name}`}
       >
@@ -60,10 +60,10 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
         {compact ? null : (
           <>
             <span className="hidden min-w-0 flex-1 xl:block">
-              <span className="block truncate text-sm font-medium text-white">{user.full_name}</span>
-              <span className="block truncate text-xs text-sidebar-foreground/70">{roleLabel}</span>
+              <span className="block truncate text-sm font-medium text-foreground">{user.full_name}</span>
+              <span className="block truncate text-xs text-muted-foreground">{roleLabel}</span>
             </span>
-            <ChevronsUpDown className="hidden size-4 text-sidebar-foreground/70 xl:block" aria-hidden />
+            <ChevronsUpDown className="hidden size-4 text-muted-foreground xl:block" aria-hidden />
           </>
         )}
       </DropdownMenuTrigger>

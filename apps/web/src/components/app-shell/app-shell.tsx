@@ -2,6 +2,7 @@
 
 import { Menu } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { Logo } from "@/components/logo";
@@ -10,7 +11,9 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { cn } from "@/lib/utils";
 
 import { GlobalSearchIconTrigger, GlobalSearchProvider, GlobalSearchTrigger } from "./global-search";
+import { currentNavLabel } from "./nav-config";
 import { SidebarNav } from "./sidebar-nav";
+import { ThemeToggle } from "./theme-toggle";
 import { UserMenu } from "./user-menu";
 
 function Brand({ tone = "light" }: { tone?: "light" | "sidebar" }) {
@@ -19,7 +22,8 @@ function Brand({ tone = "light" }: { tone?: "light" | "sidebar" }) {
       href="/"
       className={cn(
         "flex items-center gap-2 rounded-md outline-none focus-visible:ring-3",
-        tone === "sidebar" ? "text-white focus-visible:ring-sidebar-ring" : "focus-visible:ring-ring/50",
+        tone === "sidebar" && "text-foreground",
+        "focus-visible:ring-ring/50",
       )}
     >
       <Logo className="size-7 shrink-0" />
@@ -38,6 +42,7 @@ function Brand({ tone = "light" }: { tone?: "light" | "sidebar" }) {
 /** Desktop: fixed sidebar + header with search. Mobile: top bar with a Sheet menu. */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
     <GlobalSearchProvider>
@@ -48,8 +53,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         Skip to content
       </a>
 
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[72px] flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex xl:w-60">
-        <div className="flex h-16 items-center justify-center px-3 xl:justify-start xl:px-5">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden h-dvh w-16 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex xl:w-60">
+        <div className="flex h-14 items-center justify-center border-b border-sidebar-border px-3 xl:justify-start xl:px-5">
           <Brand tone="sidebar" />
         </div>
         <div className="flex-1 overflow-y-auto px-3 py-4">
@@ -60,8 +65,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <div className="md:pl-[72px] xl:pl-60">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b bg-card/90 px-4 backdrop-blur supports-[backdrop-filter]:bg-card/75 sm:px-6 lg:px-8">
+      <div className="md:pl-16 xl:pl-60">
+        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b bg-background/85 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/70 sm:px-6 lg:px-8">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open navigation">
@@ -87,21 +92,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Brand />
           </div>
 
-          <div className="ml-auto flex items-center gap-2 md:ml-0 md:flex-1">
-            <GlobalSearchTrigger className="hidden md:flex" />
+          <p className="hidden truncate text-sm font-medium md:block">{currentNavLabel(pathname)}</p>
+
+          <div className="ml-auto flex items-center gap-1.5">
+            <GlobalSearchTrigger className="hidden w-60 md:flex" />
             <div className="md:hidden">
               <GlobalSearchIconTrigger />
             </div>
-          </div>
-          <div className="md:hidden">
-            <UserMenu compact />
+            <ThemeToggle />
+            <div className="md:hidden">
+              <UserMenu compact />
+            </div>
           </div>
         </header>
 
         <main
           id="main"
           tabIndex={-1}
-          className="mx-auto w-full max-w-[1440px] px-4 py-6 outline-none sm:px-6 lg:px-8 lg:py-8"
+          className="mx-auto w-full max-w-[1360px] px-4 py-6 outline-none sm:px-6 lg:px-8 lg:py-8"
         >
           {children}
         </main>

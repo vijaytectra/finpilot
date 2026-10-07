@@ -170,12 +170,15 @@ export function GlobalSearchTrigger({ className }: { className?: string }) {
     <Button
       variant="outline"
       onClick={open}
-      className={cn("h-9 w-full justify-start gap-2 px-3 font-normal text-muted-foreground sm:w-72", className)}
+      className={cn(
+        "h-9 w-full justify-start gap-2 rounded-md border bg-card px-3 text-[13px] font-normal text-muted-foreground hover:bg-muted sm:w-72",
+        className,
+      )}
       aria-keyshortcuts="Control+K Meta+K"
     >
       <Search aria-hidden />
       <span className="flex-1 text-left">Search customers…</span>
-      <kbd className="pointer-events-none hidden rounded border bg-muted px-1.5 font-mono text-[10px] font-medium sm:inline-block">
+      <kbd className="pointer-events-none hidden rounded border bg-muted px-1.5 font-mono text-[11px] font-medium sm:inline-block">
         Ctrl K
       </kbd>
     </Button>

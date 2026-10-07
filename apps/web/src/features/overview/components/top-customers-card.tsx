@@ -7,7 +7,11 @@ import { formatMoney, formatMoneyCompact } from "@/lib/format";
 
 import type { TopCustomer } from "../types";
 
+/** The overview shows a short leaderboard; "View all" opens the full AUM-sorted list. */
+const MAX_ROWS = 5;
+
 export function TopCustomersCard({ customers }: { customers: TopCustomer[] }) {
+  const shown = customers.slice(0, MAX_ROWS);
   return (
     <Card>
       <CardHeader>
@@ -20,11 +24,11 @@ export function TopCustomersCard({ customers }: { customers: TopCustomer[] }) {
         </CardAction>
       </CardHeader>
       <CardContent>
-        {customers.length === 0 ? (
+        {shown.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">No customers hold any positions yet.</p>
         ) : (
           <ol className="divide-y">
-            {customers.map((c, index) => (
+            {shown.map((c, index) => (
               <li key={c.customer_id}>
                 <Link
                   href={`/customers/${c.customer_id}`}

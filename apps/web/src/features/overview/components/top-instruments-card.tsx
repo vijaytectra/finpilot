@@ -5,7 +5,11 @@ import { formatInteger } from "@/lib/format";
 
 import type { InstrumentHolders } from "../types";
 
+/** Keep the overview compact: the five most widely held instruments. */
+const MAX_ROWS = 5;
+
 export function TopInstrumentsCard({ instruments }: { instruments: InstrumentHolders[] }) {
+  const shown = instruments.slice(0, MAX_ROWS);
   return (
     <Card>
       <CardHeader>
@@ -13,7 +17,7 @@ export function TopInstrumentsCard({ instruments }: { instruments: InstrumentHol
         <CardDescription>Instruments by number of customers holding them</CardDescription>
       </CardHeader>
       <CardContent>
-        {instruments.length === 0 ? (
+        {shown.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">No holdings in the current snapshot.</p>
         ) : (
           <Table>
@@ -25,7 +29,7 @@ export function TopInstrumentsCard({ instruments }: { instruments: InstrumentHol
               </TableRow>
             </TableHeader>
             <TableBody>
-              {instruments.map((i) => (
+              {shown.map((i) => (
                 <TableRow key={i.instrument_id}>
                   <TableCell className="max-w-0 min-w-0">
                     <span className="block truncate font-medium">{i.symbol}</span>

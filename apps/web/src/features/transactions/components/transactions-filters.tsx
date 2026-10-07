@@ -94,7 +94,7 @@ export function TransactionsFilters({ filters, facets, facetsLoading, onChange }
             clearable
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="col-span-2 space-y-1.5 sm:col-span-1">
           <Label htmlFor="tx-account">Account</Label>
           <Select
             value={filters.account_id ?? ALL}

@@ -22,7 +22,7 @@ export function CustomerTabs({ customerId }: { customerId: string }) {
   const base = `/customers/${customerId}`;
 
   return (
-    <nav aria-label="Customer sections" className="flex gap-6 overflow-x-auto overflow-y-hidden border-b [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <nav aria-label="Customer sections" className="flex gap-5 overflow-x-auto sm:gap-6 overflow-y-hidden border-b [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {TABS.map((tab) => {
         const href = tab.segment ? `${base}/${tab.segment}` : base;
         const active = tab.segment ? pathname.startsWith(href) : pathname === base;
@@ -37,7 +37,8 @@ export function CustomerTabs({ customerId }: { customerId: string }) {
               active && "border-primary text-foreground",
             )}
           >
-            <Icon className="size-4" aria-hidden />
+            {/* Icons drop on phones so all four tabs fit without scrolling. */}
+            <Icon className="hidden size-4 sm:block" aria-hidden />
             {tab.label}
           </Link>
         );

@@ -48,7 +48,7 @@ export function CustomerOverviewTab({ customerId }: { customerId: string }) {
             </CardHeader>
             <CardContent>
               {portfolio.isPending ? (
-                <div className="grid items-center gap-6 md:grid-cols-[200px_1fr]" aria-hidden>
+                <div className="grid items-center gap-6 md:grid-cols-[200px_1fr] lg:grid-cols-1 xl:grid-cols-[200px_1fr]" aria-hidden>
                   <Skeleton className="mx-auto size-[180px] rounded-full" />
                   <div className="space-y-3">
                     {Array.from({ length: 4 }, (_, i) => (

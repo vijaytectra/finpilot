@@ -35,7 +35,7 @@ export function TopCustomersCard({ customers }: { customers: TopCustomer[] }) {
                     <span className="block truncate text-sm font-medium">{c.full_name}</span>
                     <span className="block text-xs text-muted-foreground">{c.customer_id}</span>
                   </span>
-                  <Badge variant="outline" className="hidden sm:inline-flex">
+                  <Badge variant="outline" className="hidden sm:inline-flex lg:hidden xl:inline-flex">
                     {c.segment}
                   </Badge>
                   <span className="tabular w-20 text-right text-sm font-medium" title={formatMoney(c.aum)}>

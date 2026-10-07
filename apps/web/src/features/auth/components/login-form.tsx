@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircle, Eye, EyeOff, Loader2, LogIn } from "lucide-react";
+import { AlertCircle, ArrowRight, Eye, EyeOff, Loader2, LogIn } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -24,6 +24,15 @@ const loginSchema = z.object({
 
 type LoginValues = z.infer<typeof loginSchema>;
 
+/**
+ * One-click demo sign-in for reviewers. These are the seeded demo accounts already published
+ * in the README; the API never creates them in production. Hide with NEXT_PUBLIC_DEMO_LOGINS=false.
+ */
+const DEMO_ACCOUNTS = [
+  { role: "Admin", detail: "Full access + imports", email: "admin@finpilot.local", password: "Admin@12345" },
+  { role: "Viewer", detail: "Read-only access", email: "viewer@finpilot.local", password: "Viewer@12345" },
+] as const;
+const SHOW_DEMO_LOGINS = process.env.NEXT_PUBLIC_DEMO_LOGINS !== "false";
 
 function describeLoginError(error: unknown): string {
   if (!isApiError(error)) return "Something went wrong. Please try again.";
@@ -144,6 +153,40 @@ export function LoginForm() {
           {login.isPending ? <Loader2 className="animate-spin" aria-hidden /> : <LogIn aria-hidden />}
           {login.isPending ? "Signing in…" : "Sign in"}
         </Button>
+
+        {SHOW_DEMO_LOGINS ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="h-px flex-1 bg-border" aria-hidden />
+              Demo accounts
+              <span className="h-px flex-1 bg-border" aria-hidden />
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {DEMO_ACCOUNTS.map((account) => (
+                <button
+                  key={account.role}
+                  type="button"
+                  disabled={login.isPending}
+                  onClick={() => {
+                    form.setValue("email", account.email);
+                    form.setValue("password", account.password);
+                    void onSubmit();
+                  }}
+                  className="group flex items-center justify-between gap-3 rounded-lg border bg-card px-3.5 py-3 text-left transition-colors outline-none hover:border-primary/40 hover:bg-accent/40 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60"
+                >
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium">Sign in as {account.role}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{account.detail}</span>
+                  </span>
+                  <ArrowRight
+                    className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
+                    aria-hidden
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </FieldGroup>
     </form>
   );
